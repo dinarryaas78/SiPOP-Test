@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <!-- Mengubah warna tema meta menjadi biru utama -->
+  <meta name="theme-color" content="#0284c7" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>SiPOP – Sistem Pelaporan Operasional dan Pemeliharaan Jaringan Irigasi NTT</title>
+  <link rel="stylesheet" href="sipop-style.css" />
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="app-header">
+  <div class="brand">
+    <!-- MENGUBAH LOGO: Dari Padi (🌾) menjadi Air/Bendungan (💧 atau 🌊 atau 🚧) -->
+    <!-- Menggunakan emoji air mancur/pengairan -->
+    <div class="brand-icon">⛲</div> 
+    <div class="brand-text">
+      <h1>SiPOP – Irigasi NTT</h1>
+      <p>Sistem Pelaporan Operasi & Pemeliharaan Jaringan Irigasi</p>
+    </div>
+  </div>
+  <div class="status-badge">
+    <div class="status-dot"></div>
+    Online
+  </div>
+</header>
+
+<!-- ===== SENDING OVERLAY ===== -->
+<div class="sending-overlay" id="sendingOverlay">
+  <div class="spinner"></div>
+  <p>⏳ Mengirim laporan...</p>
+  <small>Menyiapkan data dan foto...</small>
+</div>
+
+<!-- ===========================
+     TAB: FORM
+=========================== -->
+<div id="tab-form">
+
+  <!-- STEPPER -->
+  <div class="stepper-wrap">
+    <div class="stepper" id="stepper">
+      <div class="step-item active" data-step="1">
+        <div class="step-circle">👤</div>
+        <div class="step-label">Identitas</div>
+      </div>
+      <div class="step-item" data-step="2">
+        <div class="step-circle">🗺️</div>
+        <div class="step-label">Lokasi</div>
+      </div>
+      <div class="step-item" data-step="3">
+        <div class="step-circle">✅</div>
+        <div class="step-label">Kehadiran</div>
+      </div>
+      <div class="step-item" data-step="4">
+        <div class="step-circle">📋</div>
+        <div class="step-label">Laporan</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- ===== STEP 1: IDENTITAS ===== -->
+    <div id="step1">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon">👤</div>
+          <div>
+            <h2>Identitas Petugas</h2>
+            <p>Isi data diri petugas OP</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="jabatan">Jabatan <span class="req">*</span></label>
+          <select id="jabatan">
+            <option value="">-- Pilih Jabatan --</option>
+            <option value="POB – Petugas Operasi Bendung">POB – Petugas Operasi Bendung</option>
+            <option value="PPA – Petugas Pintu Air">PPA – Petugas Pintu Air</option>
+            <option value="Pengamat Pengairan">Pengamat Pengairan</option>
+            <option value="Juru Pengairan">Juru Pengairan</option>
+            <option value="Staf Pengamat">Staf Pengamat</option>
+            <option value="Lainnya">Lainnya</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="namaPetugas">Nama Petugas <span class="req">*</span></label>
+          <input type="text" id="namaPetugas" placeholder="Isi nama lengkap sesuai identitas" />
+        </div>
+
+        <div class="form-group">
+          <label for="tanggal">Tanggal <span class="req">*</span></label>
+          <input type="date" id="tanggal" />
+        </div>
+
+        <div class="form-group">
+          <label for="waktu">Waktu <span class="req">*</span></label>
+          <input type="time" id="waktu" />
+        </div>
+
+        <button class="btn btn-primary" onclick="nextStep(2)">Lanjut ke Lokasi →</button>
+      </div>
+    </div>
+
+    <!-- ===== STEP 2: LOKASI ===== -->
+    <div id="step2" style="display:none">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon">🗺️</div>
+          <div>
+            <h2>Lokasi Tugas</h2>
+            <p>Daerah Irigasi dan wilayah administratif</p>
+          </div>
+        </div>
+
+        <div class="section-divider">Daerah Irigasi</div>
+
+        <div class="form-group">
+          <label for="daerahIrigasi">Nama Daerah Irigasi (D.I) <span class="req">*</span></label>
+          <input type="text" id="daerahIrigasi" placeholder="Isi nama D.I tempat bertugas" />
+        </div>
+
+        <div class="form-group">
+          <label for="ruasKerja">Ruas Kerja / Nama Saluran <span class="req">*</span></label>
+          <input type="text" id="ruasKerja" placeholder="Contoh: Saluran Primer, Sekunder atau Tersier" />
+        </div>
+
+        <div class="section-divider">Wilayah Administratif</div>
+
+        <div class="form-group">
+          <label for="desa">Nama Desa <span class="req">*</span></label>
+          <input type="text" id="desa" placeholder="Nama desa" />
+        </div>
+
+        <div class="form-group">
+          <label for="kecamatan">Kecamatan <span class="req">*</span></label>
+          <input type="text" id="kecamatan" placeholder="Nama kecamatan" />
+        </div>
+
+        <div class="form-group">
+          <label for="kabupaten">Kabupaten <span class="req">*</span></label>
+          <input type="text" id="kabupaten" placeholder="Nama kabupaten" />
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="prevStep(1)">← Kembali</button>
+          <button class="btn btn-primary" onclick="nextStep(3)">Lanjut ke Kehadiran →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== STEP 3: KEHADIRAN ===== -->
+    <div id="step3" style="display:none">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon">✅</div>
+          <div>
+            <h2>Status Kehadiran</h2>
+            <p>Pilih status dan ambil lokasi GPS</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Status <span class="req">*</span></label>
+          <div class="status-group">
+            <div>
+              <input type="radio" name="status" id="status-hadir" class="status-radio" value="Hadir" checked />
+              <label for="status-hadir" class="status-label">
+                <span class="emoji">✅</span>Hadir
+              </label>
+            </div>
+            <div>
+              <input type="radio" name="status" id="status-ijin" class="status-radio" value="Ijin/Sakit" />
+              <label for="status-ijin" class="status-label">
+                <span class="emoji">🏥</span>Ijin/Sakit
+              </label>
+            </div>
+            <div>
+              <input type="radio" name="status" id="status-tidak" class="status-radio" value="Tidak Hadir" />
+              <label for="status-tidak" class="status-label">
+                <span class="emoji">❌</span>Tidak Hadir
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="keterangan">Keterangan <span class="req">*</span></label>
+          <textarea id="keterangan" placeholder="Isi keterangan kehadiran..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <div class="gps-widget">
+            <h4>📍 Lokasi GPS</h4>
+            <p style="font-size:12px;color:#0369a1;margin-bottom:10px;">Verifikasi keberadaan petugas di lapangan</p>
+            <div class="gps-status" id="gpsStatus">🛰️ Belum diambil — Tap tombol untuk capture lokasi</div>
+            <div class="gps-coords" id="gpsCoords"></div>
+            <button class="btn btn-gps" onclick="ambilGPS()">
+              📡 Ambil Lokasi GPS Sekarang
+            </button>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="prevStep(2)">← Kembali</button>
+          <button class="btn btn-primary" onclick="nextStep(4)">Lanjut ke Laporan →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== STEP 4: LAPORAN ===== -->
+    <div id="step4" style="display:none">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon">📋</div>
+          <div>
+            <h2>Kegiatan yang Dilakukan</h2>
+            <p>Centang semua kegiatan hari ini</p>
+          </div>
+        </div>
+
+        <div class="checklist">
+          <input type="checkbox" id="c1" class="check-item" value="Inspeksi saluran irigasi" />
+          <label for="c1" class="check-label">🔍 Inspeksi saluran irigasi</label>
+
+          <input type="checkbox" id="c2" class="check-item" value="Operasi pintu air" />
+          <label for="c2" class="check-label">🚪 Operasi pintu air</label>
+
+          <input type="checkbox" id="c3" class="check-item" value="Pemeliharaan rutin saluran" />
+          <label for="c3" class="check-label">🔧 Pemeliharaan rutin saluran</label>
+
+          <input type="checkbox" id="c4" class="check-item" value="Pemeliharaan bangunan irigasi" />
+          <label for="c4" class="check-label">🏗️ Pemeliharaan bangunan irigasi</label>
+
+          <input type="checkbox" id="c5" class="check-item" value="Pencatatan debit air / pengukuran" />
+          <label for="c5" class="check-label">📏 Pencatatan debit air / pengukuran</label>
+
+          <input type="checkbox" id="c6" class="check-item" value="Koordinasi dengan petani / P3A" />
+          <label for="c6" class="check-label">🤝 Koordinasi dengan petani / P3A</label>
+
+          <input type="checkbox" id="c7" class="check-item" value="Pelaporan kerusakan darurat" />
+          <label for="c7" class="check-label">🚨 Pelaporan kerusakan darurat</label>
+
+          <input type="checkbox" id="c8" class="check-item" value="Kegiatan lainnya" />
+          <label for="c8" class="check-label">➕ Kegiatan lainnya</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon">📸</div>
+          <div>
+            <h2>Dokumentasi Foto</h2>
+            <p>Upload hingga 6 foto (opsional)</p>
+          </div>
+        </div>
+
+        <div class="foto-hint">
+          📁 Foto bisa diambil langsung dari <strong>kamera</strong> atau dipilih dari <strong>galeri/album</strong> HP. Sentuh slot foto untuk memilih.
+        </div>
+
+        <div class="foto-grid" id="fotoGrid">
+          <div class="foto-slot" onclick="pilihFoto(0)" id="slot0">
+            <span class="slot-icon">📷</span>
+            <span class="slot-label">Kondisi Umum</span>
+          </div>
+          <div class="foto-slot" onclick="pilihFoto(1)" id="slot1">
+            <span class="slot-icon">🚪</span>
+            <span class="slot-label">Pintu Air</span>
+          </div>
+          <div class="foto-slot" onclick="pilihFoto(2)" id="slot2">
+            <span class="slot-icon">🌊</span>
+            <span class="slot-label">Saluran</span>
+          </div>
+          <div class="foto-slot" onclick="pilihFoto(3)" id="slot3">
+            <span class="slot-icon">🏗️</span>
+            <span class="slot-label">Bendung</span>
+          </div>
+          <div class="foto-slot" onclick="pilihFoto(4)" id="slot4">
+            <span class="slot-icon">👷</span>
+            <span class="slot-label">Kegiatan</span>
+          </div>
+          <div class="foto-slot" onclick="pilihFoto(5)" id="slot5">
+            <span class="slot-icon">➕</span>
+            <span class="slot-label">Lainnya</span>
+          </div>
+        </div>
+        <!-- Hidden file inputs -->
+        <input type="file" accept="image/*" capture="environment" id="fileInput0" style="display:none" onchange="previewFoto(0,this)" />
+        <input type="file" accept="image/*" capture="environment" id="fileInput1" style="display:none" onchange="previewFoto(1,this)" />
+        <input type="file" accept="image/*" capture="environment" id="fileInput2" style="display:none" onchange="previewFoto(2,this)" />
+        <input type="file" accept="image/*" capture="environment" id="fileInput3" style="display:none" onchange="previewFoto(3,this)" />
+        <input type="file" accept="image/*" capture="environment" id="fileInput4" style="display:none" onchange="previewFoto(4,this)" />
+        <input type="file" accept="image/*" capture="environment" id="fileInput5" style="display:none" onchange="previewFoto(5,this)" />
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon">📝</div>
+          <div>
+            <h2>Catatan Tambahan</h2>
+            <p>Informasi lain yang perlu dilaporkan</p>
+          </div>
+        </div>
+        <div class="form-group">
+          <textarea id="catatan" placeholder="Tulis catatan tambahan di sini..." style="min-height:100px"></textarea>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="prevStep(3)">← Kembali</button>
+        <button class="btn btn-primary" onclick="kirimLaporan()">🚀 Kirim Laporan</button>
+      </div>
+
+      <!-- SUCCESS PAGE (muncul setelah kirim) -->
+      <div class="success-page" id="successPage">
+        <div class="success-circle">✅</div>
+        <h2>Laporan Terkirim!</h2>
+        <p>Data dan foto telah tersimpan ke Google Sheets & Drive</p>
+
+        <div class="success-meta" id="successMeta"></div>
+
+        <button class="btn btn-primary" onclick="buatBaru()" style="max-width:280px;margin-top:8px">
+          📝 Buat Laporan Baru
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /container -->
+</div><!-- /tab-form -->
+
+<!-- ===========================
+     TAB: RIWAYAT
+=========================== -->
+<div id="tab-riwayat">
+  <div class="container">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">📋</div>
+        <div>
+          <h2>Riwayat Laporan</h2>
+          <p>Laporan yang sudah dikirim di perangkat ini</p>
+        </div>
+      </div>
+      <div id="riwayatList">
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <p>Belum ada riwayat laporan</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===========================
+     TAB: PANDUAN
+=========================== -->
+<div id="tab-panduan">
+  <div class="container">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">🔧</div>
+        <div>
+          <h2>Panduan Setup Lengkap</h2>
+          <p>Integrasi Apps Script + Google Drive (dengan foto)</p>
+        </div>
+      </div>
+      <div class="info-box">
+        ℹ️ Sistem ini menggunakan <strong>Google Apps Script Web App</strong> — bukan Google Forms biasa — sehingga foto bisa dikirim langsung ke Google Drive.
+      </div>
+    </div>
+
+    <div class="panduan-step">
+      <div class="panduan-num">1</div>
+      <div>
+        <h3>Buat Google Spreadsheet</h3>
+        <p>Buka <strong>sheets.google.com</strong> → buat spreadsheet baru → beri nama <strong>"SiPOP – Data Laporan"</strong>. Salin <strong>Spreadsheet ID</strong> dari URL:</p>
+        <div class="code-block">https://docs.google.com/spreadsheets/d/<span style="color:#fde68a">SALIN_ID_INI</span>/edit</div>
+      </div>
+    </div>
+
+    <div class="panduan-step">
+      <div class="panduan-num">2</div>
+      <div>
+        <h3>Buat Apps Script</h3>
+        <p>Di spreadsheet → klik menu <strong>Ekstensi → Apps Script</strong> → hapus semua kode lama → paste kode Apps Script. Ganti baris:</p>
+        <div class="code-block">const SPREADSHEET_ID = "<span style="color:#fde68a">ID_SPREADSHEET_ANDA</span>";</div>
+        <p style="margin-top:8px">Ganti <code style="background:var(--gray-100);padding:2px 5px;border-radius:4px;font-size:11px">ID_SPREADSHEET_ANDA</code> dengan ID yang disalin di langkah 1.</p>
+      </div>
+    </div>
+
+    <div class="panduan-step">
+      <div class="panduan-num">3</div>
+      <div>
+        <h3>Deploy sebagai Web App</h3>
+        <p>Di Apps Script → klik tombol <strong>Deploy → New Deployment</strong> → pilih tipe <strong>"Web App"</strong> → atur:</p>
+        <div class="code-block">Execute as  : Me
+Who has access: Anyone</div>
+        <p style="margin-top:8px">Klik <strong>Deploy</strong> → izinkan akses → salin <strong>Web App URL</strong> yang muncul.</p>
+      </div>
+    </div>
+
+    <div class="panduan-step">
+      <div class="panduan-num">4</div>
+      <div>
+        <h3>Pasang URL ke file HTML</h3>
+        <p>Buka file HTML ini di editor teks → cari bagian <strong>KONFIGURASI</strong> → ganti URL:</p>
+        <div class="code-block">const APPS_SCRIPT_URL = "<span style="color:#fde68a">PASTE_WEB_APP_URL_DISINI</span>";</div>
+        <div class="info-box" style="margin-top:8px">⚠️ Setiap kali kode Apps Script diubah, deploy ulang dengan klik <strong>Deploy → Manage Deployments → Edit → New Version</strong>.</div>
+      </div>
+    </div>
+
+    <div class="panduan-step">
+      <div class="panduan-num">5</div>
+      <div>
+        <h3>Deploy HTML ke Netlify / GitHub Pages</h3>
+        <p>Daftar di <strong>netlify.com</strong> → klik <strong>Add new site → Deploy manually</strong> → drag & drop folder berisi index.html → link siap dalam hitungan detik!</p>
+        <div class="code-block">https://nama-anda.netlify.app/</div>
+      </div>
+    </div>
+
+    <div class="panduan-step">
+      <div class="panduan-num">6</div>
+      <div>
+        <h3>Uji coba & bagikan ke tim</h3>
+        <p>Isi form sekali → cek spreadsheet → pastikan data dan link foto masuk. Bagikan link ke petugas lewat <strong>WhatsApp</strong>. Sarankan untuk <strong>Add to Home Screen</strong> di HP masing-masing.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BOTTOM NAV ===== -->
+<nav class="bottom-nav">
+  <button class="nav-item active" id="nav-form" onclick="showTab('form')">
+    <span class="nav-icon">📝</span>Form
+  </button>
+  <button class="nav-item" id="nav-riwayat" onclick="showTab('riwayat')">
+    <span class="nav-icon">📋</span>Riwayat
+  </button>
+  <button class="nav-item" id="nav-panduan" onclick="showTab('panduan')">
+    <span class="nav-icon">📖</span>Panduan
+  </button>
+</nav>
+<script src="app.js"></script>
+</body>
+</html>
