@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <!-- Mengubah warna tema meta menjadi biru utama -->
+  <meta name="theme-color" content="#0284c7" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>SiPOP – Sistem Pelaporan Operasional dan Pemeliharaan Jaringan Irigasi NTT</title>
+  <style>
+    /* ==============================
+       DESIGN TOKENS (TEMA PERAIRAN)
+    ============================== */
+    :root {
+      /* Mengubah palet hijau menjadi palet biru perairan */
+      --blue-dark:    #0369a1; /* Pengganti green-dark */
+      --blue-main:    #0ea5e9; /* Pengganti green-main */
+      --blue-light:   #bae6fd; /* Pengganti green-light */
+      --blue-pale:    #f0f9ff; /* Pengganti green-pale */
+      
+      /* Warna aksen tetap */
+      --amber:        #f59e0b;
+      --amber-pale:   #fffbeb;
+      --red:          #ef4444;
+      --red-pale:     #fef2f2;
+      --gray-900:     #111827;
+      --gray-700:     #374151;
+      --gray-500:     #6b7280;
+      --gray-300:     #d1d5db;
+      --gray-100:     #f3f4f6;
+      --white:        #ffffff;
+      
+      /* Token utilitas tetap */
+      --radius-sm:    8px;
+      --radius-md:    14px;
+      --radius-lg:    20px;
+      --shadow-sm:    0 1px 4px rgba(0,0,0,.08);
+      --shadow-md:    0 4px 16px rgba(0,0,0,.12);
+      --shadow-lg:    0 8px 32px rgba(0,0,0,.16);
+    }
+
+    /* ==============================
+       RESET & BASE
+    ============================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      /* Mengubah background body menjadi biru sangat muda */
+      background: #f0f9ff; 
+      color: var(--gray-900);
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+
+    /* ==============================
+       HEADER (TEMA BIRU)
+    ============================== */
+    .app-header {
+      /* Mengubah gradien menjadi nuansa biru */
+      background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue-main) 100%);
+      color: var(--white);
+      padding: 18px 20px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-md);
+    }
+    .app-header .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .app-header .brand-icon {
+      font-size: 28px;
+      line-height: 1;
+    }
+    .app-header .brand-text h1 {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: .3px;
+    }
+    .app-header .brand-text p {
+      font-size: 11px;
+      opacity: .85;
+      margin-top: 1px;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 11px;
+      margin-top: 10px;
+    }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #4ade80; /* Warna dot tetap hijau untuk 'online' */
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50%      { opacity: .4; }
+    }
+
+    /* ==============================
+       STEPPER (TEMA BIRU)
+    ============================== */
+    .stepper-wrap {
+      background: var(--white);
+      padding: 16px 20px 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .stepper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+    }
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      position: relative;
+    }
+    .step-item:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 16px;
+      left: calc(50% + 16px);
+      right: calc(-50% + 16px);
+      height: 2px;
+      background: var(--gray-300);
+      transition: background .4s;
+    }
+    /* Mengubah warna konektor stepper menjadi biru */
+    .step-item.done:not(:last-child)::after,
+    .step-item.active:not(:last-child)::after {
+      background: var(--blue-main);
+    }
+    .step-circle {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--gray-100);
+      border: 2px solid var(--gray-300);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gray-500);
+      transition: all .35s;
+      z-index: 1;
+    }
+    /* Mengubah warna step aktif menjadi biru */
+    .step-item.active .step-circle {
+      background: var(--blue-main);
+      border-color: var(--blue-main);
+      color: var(--white);
+      box-shadow: 0 0 0 4px var(--blue-light);
+    }
+    /* Mengubah warna step selesai menjadi biru tua */
+    .step-item.done .step-circle {
+      background: var(--blue-dark);
+      border-color: var(--blue-dark);
+      color: var(--white);
+    }
+    .step-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--gray-500);
+      margin-top: 5px;
+      text-align: center;
+      transition: color .3s;
+    }
+    /* Mengubah warna label aktif/selesai menjadi biru */
+    .step-item.active .step-label { color: var(--blue-main); }
+    .step-item.done .step-label   { color: var(--blue-dark); }
+
+    /* ==============================
+       CARDS / SECTIONS
+    ============================== */
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 16px 14px;
+    }
+    .card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      padding: 20px 18px;
+      margin-bottom: 14px;
+    }
+    .card-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1.5px solid var(--gray-100);
+    }
+    .card-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      /* Mengubah background icon card menjadi biru pucat */
+      background: var(--blue-pale);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .card-head h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+    .card-head p {
+      font-size: 12px;
+      color: var(--gray-500);
+      margin-top: 2px;
+    }
+
+    /* ==============================
+       FORM ELEMENTS (TEMA BIRU)
+    ============================== */
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group:last-child { margin-bottom: 0; }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-700);
+      margin-bottom: 6px;
+      letter-spacing: .2px;
+    }
+    label .req { color: var(--red); margin-left: 2px; }
+    input[type=text],
+    input[type=date],
+    input[type=time],
+    select,
+    textarea {
+      width: 100%;
+      padding: 11px 13px;
+      border: 1.5px solid var(--gray-300);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--gray-900);
+      background: var(--white);
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    /* Mengubah warna focus input menjadi biru */
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--blue-main);
+      box-shadow: 0 0 0 3px rgba(14,165,233,.12);
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7280' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 13px center; padding-right: 36px; }
+
+    .section-divider {
+      font-size: 11px;
+      font-weight: 700;
+      /* Mengubah warna divider section menjadi biru tua */
+      color: var(--blue-dark);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin: 20px 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      /* Mengubah warna garis divider menjadi biru muda */
+      background: var(--blue-light);
+    }
+
+    /* ==============================
+       STATUS RADIO BUTTONS (TEMA BIRU untuk 'Hadir')
+    ============================== */
+    .status-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .status-radio { display: none; }
+    .status-label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 12px 6px;
+      border: 2px solid var(--gray-300);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all .25s;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-500);
+    }
+    .status-label .emoji { font-size: 22px; }
+    /* Mengubah warna check 'Hadir' menjadi biru */
+    .status-radio:checked + .status-label {
+      border-color: var(--blue-main);
+      background: var(--blue-pale);
+      color: var(--blue-dark);
+      box-shadow: 0 0 0 3px var(--blue-light);
+    }
+    /* Warna aksen kuning & merah tetap untuk Ijin & Tidak Hadir */
+    #status-ijin:checked + .status-label {
+      border-color: var(--amber);
+      background: var(--amber-pale);
+      color: #92400e;
+      box-shadow: 0 0 0 3px #fde68a;
+    }
+    #status-tidak:checked + .status-label {
+      border-color: var(--red);
+      background: var(--red-pale);
+      color: #991b1b;
+      box-shadow: 0 0 0 3px #fecaca;
+    }
+
+    /* ==============================
+       GPS WIDGET (TETAP BIRU)
+    ============================== */
+    .gps-widget {
+      background: #e0f2fe; /* Blue-pale utilitas */
+      border: 1.5px solid #bae6fd;
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-top: 6px;
+    }
+    .gps-widget h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0369a1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .gps-status {
+      font-size: 12px;
+      color: var(--gray-500);
+      margin-bottom: 10px;
+    }
+    .gps-status.success { color: #15803d; }
+    .gps-status.error   { color: var(--red); }
+    .gps-coords {
+      background: var(--white);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      font-size: 12px;
+      font-family: monospace;
+      color: var(--gray-700);
+      margin-bottom: 10px;
+      display: none;
+    }
+    .gps-coords.show { display: block; }
+
+    /* ==============================
+       CHECKLIST (TEMA BIRU)
+    ============================== */
+    .checklist { display: flex; flex-direction: column; gap: 6px; }
+    .check-item { display: none; }
+    .check-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1.5px solid var(--gray-200, #e5e7eb);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--gray-700);
+      transition: all .2s;
+    }
+    .check-label::before {
+      content: '';
+      width: 20px; height: 20px;
+      border: 2px solid var(--gray-300);
+      border-radius: 5px;
+      flex-shrink: 0;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* Mengubah warna checklist terpilih menjadi biru */
+    .check-item:checked + .check-label {
+      border-color: var(--blue-main);
+      background: var(--blue-pale);
+      color: var(--blue-dark);
+    }
+    .check-item:checked + .check-label::before {
+      background: var(--blue-main);
+      border-color: var(--blue-main);
+      content: '✓';
+      color: white;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ==============================
+       FOTO UPLOAD (TEMA BIRU)
+    ============================== */
+    .foto-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .foto-slot {
+      aspect-ratio: 1;
+      border: 2px dashed var(--gray-300);
+      border-radius: var(--radius-sm);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all .2s;
+      overflow: hidden;
+      position: relative;
+      background: var(--gray-100);
+      gap: 4px;
+    }
+    /* Mengubah warna hover slot foto menjadi biru */
+    .foto-slot:hover { border-color: var(--blue-main); background: var(--blue-pale); }
+    .foto-slot .slot-icon { font-size: 22px; }
+    .foto-slot .slot-label { font-size: 10px; font-weight: 600; color: var(--gray-500); text-align: center; padding: 0 4px; }
+    .foto-slot img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .foto-slot .remove-foto {
+      position: absolute; top: 4px; right: 4px;
+      width: 22px; height: 22px;
+      background: rgba(0,0,0,.55);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      z-index: 2;
+    }
+    .foto-hint {
+      font-size: 11px;
+      color: var(--gray-500);
+      background: var(--gray-100);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    /* ==============================
+       BUTTONS (TEMA BIRU)
+    ============================== */
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px 20px;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .2s;
+      font-family: inherit;
+      letter-spacing: .3px;
+    }
+    /* Mengubah gradien tombol primary menjadi nuansa biru */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--blue-main), var(--blue-dark));
+      color: var(--white);
+      box-shadow: 0 4px 12px rgba(14,165,233,.35);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(14,165,233,.45); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-secondary {
+      background: var(--gray-100);
+      color: var(--gray-700);
+      border: 1.5px solid var(--gray-300);
+    }
+    .btn-gps {
+      background: linear-gradient(135deg, var(--blue-main), #0284c7);
+      color: white;
+      box-shadow: 0 4px 12px rgba(14,165,233,.3);
+      font-size: 13px;
+      padding: 11px 16px;
+    }
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    /* ==============================
+       LOADING / SPINNER
+    ============================== */
+    .sending-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.5);
+      backdrop-filter: blur(4px);
+      z-index: 999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      color: white;
+    }
+    .sending-overlay.show { display: flex; }
+    .spinner {
+      width: 52px; height: 52px;
+      border: 4px solid rgba(255,255,255,.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .sending-overlay p { font-size: 15px; font-weight: 600; }
+    .sending-overlay small { font-size: 12px; opacity: .75; }
+
+    /* ==============================
+       SUCCESS PAGE (TEMA BIRU)
+    ============================== */
+    .success-page {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 40px 20px;
+      gap: 16px;
+    }
+    .success-page.show { display: flex; }
+    .success-circle {
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      /* Mengubah gradien lingkaran sukses menjadi biru */
+      background: linear-gradient(135deg, var(--blue-main), var(--blue-dark));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 44px;
+      box-shadow: 0 8px 24px rgba(14,165,233,.4);
+      animation: popIn .5s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    @keyframes popIn {
+      from { transform: scale(0); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+    /* Mengubah warna teks sukses menjadi biru tua */
+    .success-page h2 { font-size: 22px; font-weight: 800; color: var(--blue-dark); }
+    .success-page p  { font-size: 14px; color: var(--gray-500); max-width: 280px; }
+    .success-meta {
+      /* Mengubah warna kotak meta sukses menjadi nuansa biru */
+      background: var(--blue-pale);
+      border: 1.5px solid var(--blue-light);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      width: 100%;
+      max-width: 340px;
+      text-align: left;
+    }
+    .success-meta .meta-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 4px 0;
+      /* Mengubah warna garis pembatas meta menjadi biru muda */
+      border-bottom: 1px solid var(--blue-light);
+      color: var(--gray-700);
+    }
+    .success-meta .meta-row:last-child { border-bottom: none; }
+    /* Mengubah warna teks strong meta menjadi biru tua */
+    .success-meta .meta-row strong { color: var(--blue-dark); }
+
+    /* ==============================
+       RIWAYAT (TEMA BIRU)
+    ============================== */
+    #tab-riwayat { display: none; }
+    .riwayat-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow-sm);
+      /* Mengubah border kiri default menjadi biru */
+      border-left: 4px solid var(--blue-main);
+    }
+    /* Warna aksen kuning & merah tetap untuk riwayat Ijin & Tidak Hadir */
+    .riwayat-card.ijin  { border-color: var(--amber); }
+    .riwayat-card.tidak { border-color: var(--red); }
+    .riwayat-card .rw-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 6px;
+    }
+    .riwayat-card .rw-name { font-size: 14px; font-weight: 700; }
+    .riwayat-card .rw-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      /* Mengubah badge default menjadi biru pucat */
+      background: var(--blue-pale);
+      color: var(--blue-dark);
+    }
+    .riwayat-card.ijin  .rw-badge { background: var(--amber-pale); color: #92400e; }
+    .riwayat-card.tidak .rw-badge { background: var(--red-pale);   color: #991b1b; }
+    .riwayat-card .rw-info { font-size: 12px; color: var(--gray-500); }
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--gray-500);
+    }
+    .empty-state .empty-icon { font-size: 48px; margin-bottom: 10px; }
+    .empty-state p { font-size: 14px; }
+
+    /* ==============================
+       PANDUAN (TEMA BIRU)
+    ============================== */
+    #tab-panduan { display: none; }
+    .panduan-step {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 18px;
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .panduan-num {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      /* Mengubah warna nomor panduan menjadi biru */
+      background: var(--blue-main);
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .panduan-step h3 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .panduan-step p  { font-size: 12px; color: var(--gray-500); line-height: 1.5; }
+    .code-block {
+      background: var(--gray-900);
+      color: #86efac; /* Warna teks kode tetap hijau agar kontras */
+      font-family: monospace;
+      font-size: 11px;
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      margin-top: 8px;
+      overflow-x: auto;
+      white-space: pre;
+      line-height: 1.5;
+    }
+    .info-box {
+      background: var(--amber-pale);
+      border: 1.5px solid #fde68a;
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #92400e;
+      margin-top: 8px;
+      display: flex;
+      gap: 6px;
+    }
+
+    /* ==============================
+       BOTTOM NAV (TEMA BIRU)
+    ============================== */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--white);
+      border-top: 1.5px solid var(--gray-100);
+      display: flex;
+      box-shadow: 0 -4px 16px rgba(0,0,0,.08);
+      z-index: 99;
+    }
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 10px 6px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-family: inherit;
+      color: var(--gray-500);
+      font-size: 10px;
+      font-weight: 600;
+      transition: color .2s;
+    }
+    .nav-item .nav-icon { font-size: 20px; }
+    /* Mengubah warna nav aktif menjadi biru */
+    .nav-item.active { color: var(--blue-main); }
+  </style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="app-header">
+  <div class="brand">
+    <!-- MENGUBAH LOGO: Dari Padi (🌾) menjadi Air/Bendungan (💧 atau 🌊 atau 🚧) -->
+    <!-- Menggunakan emoji air mancur/pengairan -->
+    <div class="brand-icon">⛲</div> 
+    <div class="brand-text">
+      <h1>SiPOP – Irigasi NTT</h1>
+      <p>Sistem Pelaporan Operasi & Pemeliharaan Jaringan Irigasi</p>
+    </div>
+  </div>
+  <div class="status-badge">
+    <div class="status-dot"></div>
+    Online
+  </div>
+</header>
+
+<!-- ===== SENDING OVERLAY ===== -->
+<div class="sending-overlay" id="sendingOverlay">
+  <div class="spinner"></div>
+  <p>⏳ Mengirim laporan...</p>
+  <small>Menyiapkan data dan foto...</small>
+</div>
+
+<!-- ===========================
+     TAB: FORM
+=========================== -->
+<div id="tab-form">
+
+  <!-- STEPPER -->
+  <div class="stepper-wrap">
+    <div class="stepper" id="stepper">
+      <div class="step-item active" data-step="1">
+        <div class="step-circle">👤</div>
+        <div class="step-label">Identitas</div>
+      </div>
+      <div class="step-item" data-step="2">
+        <div class="step-circle">🗺️</div>
+        <div class="step-label">Lokasi</div>
+      </div>
+      <div class="step-item" data-step="3">
+        <div class="step-circle">✅</div>
+        <div class="step-label">Kehadiran</div>
+      </div>
+      <div class="step-item" data-step="4">
+        <div class="step-circle">📋</div>
+        <div class="step-label">Laporan</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- ===== STEP 1: IDENTITAS ===== -->
+    <div id="step1">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon">👤</div>
+          <div>
+            <h2>Identitas Petugas</h2>
+            <p>Isi data diri petugas OP</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="jabatan">Jabatan <span class="req">*</span></label>
+          <select id="jabatan">
+            <option value="">-- Pilih Jabatan --</option>
+            <option value="POB – Petugas Operasi Bendung">POB – Petugas Operasi Bendung</option>
+            <option value="PPA – Petugas Pintu Air">PPA – Petugas Pintu Air</option>
+            <option value="Pengamat Pengairan">Pengamat Pengairan</option>
+            <option value="Juru Pengairan">Juru Pengairan</option>
+            <option value="Staf Pengamat">Staf Pengamat</option>
+            <option value="Lainnya">Lainnya</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="namaPetugas">Nama Petugas <span class="req">*</span></label>
+          <input type="text" id="namaPetugas" placeholder="Isi nama lengkap sesuai identitas" />
+        </div>
+
+        <div class="form-group">
+          <label for="tanggal">Tanggal <span class="req">*</span></label>
+          <input type="date" id="tanggal" />
+        </div>
+
+        <div class="form-group">
+          <label for="waktu">Waktu <span class="req">*</span></label>
+          <input type="time" id="waktu" />
+        </div>
+
+        <button class="btn btn-primary" onclick="nextStep(2)">Lanjut ke Lokasi →</button>
+      </div>
+    </div>
+
+    <!-- ===== STEP 2: LOKASI ===== -->
+    <div id="step2" style="display:none">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon">🗺️</div>
+          <div>
+            <h2>Lokasi Tugas</h2>
+            <p>Daerah Irigasi dan wilayah administratif</p>
+          </div>
+        </div>
+
+        <div class="section-divider">Daerah Irigasi</div>
+
+        <div class="form-group">
+          <label for="daerahIrigasi">Nama Daerah Irigasi (D.I) <span class="req">*</span></label>
+          <input type="text" id="daerahIrigasi" placeholder="Isi nama D.I tempat bertugas" />
+        </div>
+
+        <div class="form-group">
+          <label for="ruasKerja">Ruas Kerja / Nama Saluran <span class="req">*</span></label>
+          <input type="text" id="ruasKerja" placeholder="Contoh: Saluran Primer, Sekunder atau Tersier" />
+        </div>
+
+        <div class="section-divider">Wilayah Administratif</div>
+
+        <div class="form-group">
+          <label for="desa">Nama Desa <span class="req">*</span></label>
+          <input type="text" id="desa" placeholder="Nama desa" />
+        </div>
+
+        <div class="form-group">
+          <label for="kecamatan">Kecamatan <span class="req">*</span></label>
+          <input type="text" id="kecamatan" placeholder="Nama kecamatan" />
+        </div>
+
+        <div class="form-group">
+          <label for="kabupaten">Kabupaten <span class="req">*</span></label>
+          <input type="text" id="kabupaten" placeholder="Nama kabupaten" />
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="prevStep(1)">← Kembali</button>
+          <button class="btn btn-primary" onclick="nextStep(3)">Lanjut ke Kehadiran →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== STEP 3: KEHADIRAN ===== -->
+    <div id="step3" style="display:none">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon">✅</div>
+          <div>
+            <h2>Status Kehadiran</h2>
+            <p>Pilih status dan ambil lokasi GPS</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Status <span class="req">*</span></label>
+          <div class="status-group">
+            <div>
+              <input type="radio" name="status" id="status-hadir" class="status-radio" value="Hadir" checked />
+              <label for="status-hadir" class="status-label">
+                <span class="emoji">✅</span>Hadir
+              </label>
+            </div>
+            <div>
+              <input type="radio" name="status" id="status-ijin" class="status-radio" value="Ijin/Sakit" />
+              <label for="status-ijin" class="status-label">
+                <span class="emoji">🏥</span>Ijin/Sakit
+              </label>
+            </div>
+            <div>
+              <input type="radio" name="status" id="status-tidak" class="status-radio" value="Tidak Hadir" />
+              <label for="status-tidak" class="status-label">
+                <span class="emoji">❌</span>Tidak Hadir
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="keterangan">Keterangan <span class="req">*</span></label>
+          <textarea id="keterangan" placeholder="Isi keterangan kehadiran..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <div class="gps-widget">
+            <h4>📍 Lokasi GPS</h4>
+            <p style="font-size:12px;color:#0369a1;margin-bottom:10px;">Verifikasi keberadaan petugas di lapangan</p>
+            <div class="gps-status" id="gpsStatus">🛰️ Belum diambil — Tap tombol untuk capture lokasi</div>
+            <div class="gps-coords" id="gpsCoords"></div>
+            <button class="btn btn-gps" onclick="ambilGPS()">
+              📡 Ambil Lokasi GPS Sekarang
+            </button>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="prevStep(2)">← Kembali</button>
+          <button class="btn btn-primary" onclick="nextStep(4)">Lanjut ke Laporan →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== STEP 4: LAPORAN ===== -->
+    <div id="step4" style="display:none">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon">📋</div>
+          <div>
+            <h2>Kegiatan yang Dilakukan</h2>
+            <p>Centang semua kegiatan hari ini</p>
+          </div>
+        </div>
+
+        <div class="checklist">
+          <input type="checkbox" id="c1" class="check-item" value="Inspeksi saluran irigasi" />
+          <label for="c1" class="check-label">🔍 Inspeksi saluran irigasi</label>
+
+          <input type="checkbox" id="c2" class="check-item" value="Operasi pintu air" />
+          <label for="c2" class="check-label">🚪 Operasi pintu air</label>
+
+          <input type="checkbox" id="c3" class="check-item" value="Pemeliharaan rutin saluran" />
+          <label for="c3" class="check-label">🔧 Pemeliharaan rutin saluran</label>
+
+          <input type="checkbox" id="c4" class="check-item" value="Pemeliharaan bangunan irigasi" />
+          <label for="c4" class="check-label">🏗️ Pemeliharaan bangunan irigasi</label>
+
+          <input type="checkbox" id="c5" class="check-item" value="Pencatatan debit air / pengukuran" />
+          <label for="c5" class="check-label">📏 Pencatatan debit air / pengukuran</label>
+
+          <input type="checkbox" id="c6" class="check-item" value="Koordinasi dengan petani / P3A" />
+          <label for="c6" class="check-label">🤝 Koordinasi dengan petani / P3A</label>
+
+          <input type="checkbox" id="c7" class="check-item" value="Pelaporan kerusakan darurat" />
+          <label for="c7" class="check-label">🚨 Pelaporan kerusakan darurat</label>
+
+          <input type="checkbox" id="c8" class="check-item" value="Kegiatan lainnya" />
+          <label for="c8" class="check-label">➕ Kegiatan lainnya</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon">📸</div>
+          <div>
+            <h2>Dokumentasi Foto</h2>
+            <p>Upload hingga 6 foto (opsional)</p>
+          </div>
+        </div>
+
+        <div class="foto-hint">
+          📁 Foto bisa diambil langsung dari <strong>kamera</strong> atau dipilih dari <strong>galeri/album</strong> HP. Sentuh slot foto untuk memilih.
+        </div>
+
+        <div class="foto-grid" id="fotoGrid">
+          <div class="foto-slot" onclick="pilihFoto(0)" id="slot0">
+            <span class="slot-icon">📷</span>
+            <span class="slot-label">Kondisi Umum</span>
+          </div>
+          <div class="foto-slot" onclick="pilihFoto(1)" id="slot1">
+            <span class="slot-icon">🚪</span>
+            <span class="slot-label">Pintu Air</span>
+          </div>
+          <div class="foto-slot" onclick="pilihFoto(2)" id="slot2">
+            <span class="slot-icon">🌊</span>
+            <span class="slot-label">Saluran</span>
+          </div>
+          <div class="foto-slot" onclick="pilihFoto(3)" id="slot3">
+            <span class="slot-icon">🏗️</span>
+            <span class="slot-label">Bendung</span>
+          </div>
+          <div class="foto-slot" onclick="pilihFoto(4)" id="slot4">
+            <span class="slot-icon">👷</span>
+            <span class="slot-label">Kegiatan</span>
+          </div>
+          <div class="foto-slot" onclick="pilihFoto(5)" id="slot5">
+            <span class="slot-icon">➕</span>
+            <span class="slot-label">Lainnya</span>
+          </div>
+        </div>
+        <!-- Hidden file inputs -->
+        <input type="file" accept="image/*" capture="environment" id="fileInput0" style="display:none" onchange="previewFoto(0,this)" />
+        <input type="file" accept="image/*" capture="environment" id="fileInput1" style="display:none" onchange="previewFoto(1,this)" />
+        <input type="file" accept="image/*" capture="environment" id="fileInput2" style="display:none" onchange="previewFoto(2,this)" />
+        <input type="file" accept="image/*" capture="environment" id="fileInput3" style="display:none" onchange="previewFoto(3,this)" />
+        <input type="file" accept="image/*" capture="environment" id="fileInput4" style="display:none" onchange="previewFoto(4,this)" />
+        <input type="file" accept="image/*" capture="environment" id="fileInput5" style="display:none" onchange="previewFoto(5,this)" />
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon">📝</div>
+          <div>
+            <h2>Catatan Tambahan</h2>
+            <p>Informasi lain yang perlu dilaporkan</p>
+          </div>
+        </div>
+        <div class="form-group">
+          <textarea id="catatan" placeholder="Tulis catatan tambahan di sini..." style="min-height:100px"></textarea>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="prevStep(3)">← Kembali</button>
+        <button class="btn btn-primary" onclick="kirimLaporan()">🚀 Kirim Laporan</button>
+      </div>
+
+      <!-- SUCCESS PAGE (muncul setelah kirim) -->
+      <div class="success-page" id="successPage">
+        <div class="success-circle">✅</div>
+        <h2>Laporan Terkirim!</h2>
+        <p>Data dan foto telah tersimpan ke Google Sheets & Drive</p>
+
+        <div class="success-meta" id="successMeta"></div>
+
+        <button class="btn btn-primary" onclick="buatBaru()" style="max-width:280px;margin-top:8px">
+          📝 Buat Laporan Baru
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /container -->
+</div><!-- /tab-form -->
+
+<!-- ===========================
+     TAB: RIWAYAT
+=========================== -->
+<div id="tab-riwayat">
+  <div class="container">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">📋</div>
+        <div>
+          <h2>Riwayat Laporan</h2>
+          <p>Laporan yang sudah dikirim di perangkat ini</p>
+        </div>
+      </div>
+      <div id="riwayatList">
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <p>Belum ada riwayat laporan</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===========================
+     TAB: PANDUAN
+=========================== -->
+<div id="tab-panduan">
+  <div class="container">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon">🔧</div>
+        <div>
+          <h2>Panduan Setup Lengkap</h2>
+          <p>Integrasi Apps Script + Google Drive (dengan foto)</p>
+        </div>
+      </div>
+      <div class="info-box">
+        ℹ️ Sistem ini menggunakan <strong>Google Apps Script Web App</strong> — bukan Google Forms biasa — sehingga foto bisa dikirim langsung ke Google Drive.
+      </div>
+    </div>
+
+    <div class="panduan-step">
+      <div class="panduan-num">1</div>
+      <div>
+        <h3>Buat Google Spreadsheet</h3>
+        <p>Buka <strong>sheets.google.com</strong> → buat spreadsheet baru → beri nama <strong>"SiPOP – Data Laporan"</strong>. Salin <strong>Spreadsheet ID</strong> dari URL:</p>
+        <div class="code-block">https://docs.google.com/spreadsheets/d/<span style="color:#fde68a">SALIN_ID_INI</span>/edit</div>
+      </div>
+    </div>
+
+    <div class="panduan-step">
+      <div class="panduan-num">2</div>
+      <div>
+        <h3>Buat Apps Script</h3>
+        <p>Di spreadsheet → klik menu <strong>Ekstensi → Apps Script</strong> → hapus semua kode lama → paste kode Apps Script. Ganti baris:</p>
+        <div class="code-block">const SPREADSHEET_ID = "<span style="color:#fde68a">ID_SPREADSHEET_ANDA</span>";</div>
+        <p style="margin-top:8px">Ganti <code style="background:var(--gray-100);padding:2px 5px;border-radius:4px;font-size:11px">ID_SPREADSHEET_ANDA</code> dengan ID yang disalin di langkah 1.</p>
+      </div>
+    </div>
+
+    <div class="panduan-step">
+      <div class="panduan-num">3</div>
+      <div>
+        <h3>Deploy sebagai Web App</h3>
+        <p>Di Apps Script → klik tombol <strong>Deploy → New Deployment</strong> → pilih tipe <strong>"Web App"</strong> → atur:</p>
+        <div class="code-block">Execute as  : Me
+Who has access: Anyone</div>
+        <p style="margin-top:8px">Klik <strong>Deploy</strong> → izinkan akses → salin <strong>Web App URL</strong> yang muncul.</p>
+      </div>
+    </div>
+
+    <div class="panduan-step">
+      <div class="panduan-num">4</div>
+      <div>
+        <h3>Pasang URL ke file HTML</h3>
+        <p>Buka file HTML ini di editor teks → cari bagian <strong>KONFIGURASI</strong> → ganti URL:</p>
+        <div class="code-block">const APPS_SCRIPT_URL = "<span style="color:#fde68a">PASTE_WEB_APP_URL_DISINI</span>";</div>
+        <div class="info-box" style="margin-top:8px">⚠️ Setiap kali kode Apps Script diubah, deploy ulang dengan klik <strong>Deploy → Manage Deployments → Edit → New Version</strong>.</div>
+      </div>
+    </div>
+
+    <div class="panduan-step">
+      <div class="panduan-num">5</div>
+      <div>
+        <h3>Deploy HTML ke Netlify / GitHub Pages</h3>
+        <p>Daftar di <strong>netlify.com</strong> → klik <strong>Add new site → Deploy manually</strong> → drag & drop folder berisi index.html → link siap dalam hitungan detik!</p>
+        <div class="code-block">https://nama-anda.netlify.app/</div>
+      </div>
+    </div>
+
+    <div class="panduan-step">
+      <div class="panduan-num">6</div>
+      <div>
+        <h3>Uji coba & bagikan ke tim</h3>
+        <p>Isi form sekali → cek spreadsheet → pastikan data dan link foto masuk. Bagikan link ke petugas lewat <strong>WhatsApp</strong>. Sarankan untuk <strong>Add to Home Screen</strong> di HP masing-masing.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BOTTOM NAV ===== -->
+<nav class="bottom-nav">
+  <button class="nav-item active" id="nav-form" onclick="showTab('form')">
+    <span class="nav-icon">📝</span>Form
+  </button>
+  <button class="nav-item" id="nav-riwayat" onclick="showTab('riwayat')">
+    <span class="nav-icon">📋</span>Riwayat
+  </button>
+  <button class="nav-item" id="nav-panduan" onclick="showTab('panduan')">
+    <span class="nav-icon">📖</span>Panduan
+  </button>
+</nav>
+
+<script>
+/* ============================================================
+   KONFIGURASI — GANTI URL INI SETELAH DEPLOY APPS SCRIPT
+============================================================ */
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwT98HJRItUbgLIFNyS30-WIINera2rnTCoLM_BZK3vJysM1a0EBR37J-6ItmYNV-xFcQ/exec";
+
+/* ============================================================
+   STATE
+============================================================ */
+let currentStep = 1;
+const totalSteps = 4;
+const fotoData = [null, null, null, null, null, null]; // base64 per slot
+let gpsLat = null, gpsLng = null;
+
+/* ============================================================
+   INIT
+============================================================ */
+window.addEventListener('DOMContentLoaded', () => {
+  // Set tanggal & waktu otomatis
+  const now = new Date();
+  document.getElementById('tanggal').value = now.toISOString().split('T')[0];
+  document.getElementById('waktu').value = now.toTimeString().slice(0,5);
+  renderRiwayat();
+});
+
+/* ============================================================
+   TAB NAVIGATION
+============================================================ */
+function showTab(tab) {
+  ['form','riwayat','panduan'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+    document.getElementById('nav-' + t).classList.toggle('active', t === tab);
+  });
+  if (tab === 'riwayat') renderRiwayat();
+}
+
+/* ============================================================
+   STEPPER
+============================================================ */
+function updateStepper(step) {
+  document.querySelectorAll('.step-item').forEach((el, i) => {
+    el.classList.remove('active','done');
+    if (i + 1 < step)  el.classList.add('done');
+    if (i + 1 === step) el.classList.add('active');
+  });
+}
+
+function showStepEl(step) {
+  for (let i = 1; i <= totalSteps; i++) {
+    const el = document.getElementById('step' + i);
+    if (el) el.style.display = i === step ? 'block' : 'none';
+  }
+  document.getElementById('successPage').classList.remove('show');
+  updateStepper(step);
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function nextStep(step) {
+  if (!validateStep(currentStep)) return;
+  currentStep = step;
+  showStepEl(step);
+}
+
+function prevStep(step) {
+  currentStep = step;
+  showStepEl(step);
+}
+
+/* ============================================================
+   VALIDASI PER STEP
+============================================================ */
+function validateStep(step) {
+  if (step === 1) {
+    if (!v('jabatan'))     return alert('⚠️ Pilih jabatan terlebih dahulu!'), false;
+    if (!v('namaPetugas')) return alert('⚠️ Nama petugas wajib diisi!'), false;
+    if (!v('tanggal'))     return alert('⚠️ Tanggal wajib diisi!'), false;
+    if (!v('waktu'))       return alert('⚠️ Waktu wajib diisi!'), false;
+  }
+  if (step === 2) {
+    if (!v('daerahIrigasi')) return alert('⚠️ Nama Daerah Irigasi wajib diisi!'), false;
+    if (!v('ruasKerja'))     return alert('⚠️ Ruas Kerja wajib diisi!'), false;
+    if (!v('desa'))          return alert('⚠️ Nama Desa wajib diisi!'), false;
+    if (!v('kecamatan'))     return alert('⚠️ Kecamatan wajib diisi!'), false;
+    if (!v('kabupaten'))     return alert('⚠️ Kabupaten wajib diisi!'), false;
+  }
+  if (step === 3) {
+    if (!v('keterangan')) return alert('⚠️ Keterangan wajib diisi!'), false;
+  }
+  return true;
+}
+
+function v(id) {
+  return document.getElementById(id).value.trim();
+}
+
+/* ============================================================
+   GPS
+============================================================ */
+function ambilGPS() {
+  const statusEl = document.getElementById('gpsStatus');
+  const coordEl  = document.getElementById('gpsCoords');
+  statusEl.textContent = '📡 Mengambil lokasi GPS...';
+  statusEl.className = 'gps-status';
+
+  if (!navigator.geolocation) {
+    statusEl.textContent = '❌ Browser tidak mendukung GPS';
+    statusEl.className = 'gps-status error';
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      gpsLat = pos.coords.latitude.toFixed(6);
+      gpsLng = pos.coords.longitude.toFixed(6);
+      const acc = Math.round(pos.coords.accuracy);
+      statusEl.textContent = `✅ Lokasi berhasil diambil (akurasi ±${acc}m)`;
+      statusEl.className = 'gps-status success';
+      coordEl.textContent = `Lat: ${gpsLat}\nLng: ${gpsLng}`;
+      coordEl.classList.add('show');
+    },
+    err => {
+      statusEl.textContent = `❌ Gagal: ${err.message}`;
+      statusEl.className = 'gps-status error';
+    },
+    { enableHighAccuracy: true, timeout: 15000 }
+  );
+}
+
+/* ============================================================
+   FOTO
+============================================================ */
+function pilihFoto(idx) {
+  document.getElementById('fileInput' + idx).click();
+}
+
+function previewFoto(idx, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    fotoData[idx] = { data: e.target.result.split(',')[1], mimeType: file.type, name: file.name };
+    const slot = document.getElementById('slot' + idx);
+    // Clear slot
+    slot.innerHTML = `
+      <img src="${e.target.result}" alt="Foto ${idx+1}" />
+      <button class="remove-foto" onclick="hapusFoto(event,${idx})">✕</button>
+    `;
+  };
+  reader.readAsDataURL(file);
+}
+
+function hapusFoto(e, idx) {
+  e.stopPropagation();
+  fotoData[idx] = null;
+  const labels = ['Kondisi Umum','Pintu Air','Saluran','Bendung','Kegiatan','Lainnya'];
+  const icons  = ['📷','🚪','🌊','🏗️','👷','➕'];
+  const slot = document.getElementById('slot' + idx);
+  slot.onclick = () => pilihFoto(idx);
+  slot.innerHTML = `
+    <span class="slot-icon">${icons[idx]}</span>
+    <span class="slot-label">${labels[idx]}</span>
+  `;
+  document.getElementById('fileInput' + idx).value = '';
+}
+
+/* ============================================================
+   KUMPULKAN DATA FORM
+============================================================ */
+function kumpulkanData() {
+  const kegiatan = [];
+  document.querySelectorAll('.check-item:checked').forEach(el => kegiatan.push(el.value));
+
+  return {
+    timestamp:     new Date().toISOString(),
+    jabatan:       v('jabatan'),
+    nama:          v('namaPetugas'),
+    tanggal:       v('tanggal'),
+    waktu:         v('waktu'),
+    daerahIrigasi: v('daerahIrigasi'),
+    ruasKerja:     v('ruasKerja'),
+    desa:          v('desa'),
+    kecamatan:     v('kecamatan'),
+    kabupaten:     v('kabupaten'),
+    status:        document.querySelector('input[name="status"]:checked').value,
+    keterangan:    v('keterangan'),
+    lat:           gpsLat || '-',
+    lng:           gpsLng || '-',
+    kegiatan,
+    catatan:       v('catatan'),
+    fotos:         fotoData.filter(Boolean)
+  };
+}
+
+/* ============================================================
+   KIRIM LAPORAN
+============================================================ */
+async function kirimLaporan() {
+  // Validasi minimal 1 kegiatan
+  const checkedCount = document.querySelectorAll('.check-item:checked').length;
+  if (checkedCount === 0) {
+    return alert('⚠️ Pilih minimal satu kegiatan yang dilakukan!');
+  }
+
+  const payload = kumpulkanData();
+  const overlay = document.getElementById('sendingOverlay');
+  overlay.classList.add('show');
+
+  // Simpan ke localStorage riwayat
+  simpanRiwayat(payload);
+
+  // Kirim ke Apps Script (jika URL sudah dikonfigurasi)
+  if (APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbwT98HJRItUbgLIFNyS30-WIINera2rnTCoLM_BZK3vJysM1a0EBR37J-6ItmYNV-xFcQ/exec") {
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        mode: 'no-cors'
+      });
+    } catch(err) {
+      console.warn('Gagal kirim ke server:', err);
+    }
+  }
+
+  // Simulasi delay
+  await new Promise(r => setTimeout(r, 2000));
+  overlay.classList.remove('show');
+  tampilkanSukses(payload);
+}
+
+/* ============================================================
+   TAMPILKAN SUKSES
+============================================================ */
+function tampilkanSukses(data) {
+  // Sembunyikan isi step4 kecuali successPage
+  document.querySelectorAll('#step4 > .card, #step4 > .btn-row').forEach(el => el.style.display = 'none');
+
+  const sp = document.getElementById('successPage');
+  sp.classList.add('show');
+
+  document.getElementById('successMeta').innerHTML = `
+    <div class="meta-row"><span>👤 Petugas</span><strong>${data.nama}</strong></div>
+    <div class="meta-row"><span>🏷️ Jabatan</span><strong>${data.jabatan}</strong></div>
+    <div class="meta-row"><span>📅 Tanggal</span><strong>${data.tanggal} ${data.waktu}</strong></div>
+    <div class="meta-row"><span>🌾 D.I</span><strong>${data.daerahIrigasi}</strong></div>
+    <div class="meta-row"><span>✅ Status</span><strong>${data.status}</strong></div>
+    <div class="meta-row"><span>📋 Kegiatan</span><strong>${data.kegiatan.length} item</strong></div>
+    <div class="meta-row"><span>📸 Foto</span><strong>${data.fotos.length} foto</strong></div>
+  `;
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ============================================================
+   BUAT LAPORAN BARU
+============================================================ */
+function buatBaru() {
+  // Reset form
+  document.getElementById('jabatan').value = '';
+  document.getElementById('namaPetugas').value = '';
+  const now = new Date();
+  document.getElementById('tanggal').value = now.toISOString().split('T')[0];
+  document.getElementById('waktu').value = now.toTimeString().slice(0,5);
+  document.getElementById('daerahIrigasi').value = '';
+  document.getElementById('ruasKerja').value = '';
+  document.getElementById('desa').value = '';
+  document.getElementById('kecamatan').value = '';
+  document.getElementById('kabupaten').value = '';
+  document.getElementById('keterangan').value = '';
+  document.getElementById('catatan').value = '';
+  document.getElementById('gpsStatus').textContent = '🛰️ Belum diambil — Tap tombol untuk capture lokasi';
+  document.getElementById('gpsStatus').className = 'gps-status';
+  document.getElementById('gpsCoords').classList.remove('show');
+  document.querySelectorAll('.check-item').forEach(el => el.checked = false);
+  document.getElementById('status-hadir').checked = true;
+  gpsLat = null; gpsLng = null;
+  fotoData.fill(null);
+  // Reset foto slots
+  const labels = ['Kondisi Umum','Pintu Air','Saluran','Bendung','Kegiatan','Lainnya'];
+  const icons  = ['📷','🚪','🌊','🏗️','👷','➕'];
+  for (let i = 0; i < 6; i++) {
+    const slot = document.getElementById('slot' + i);
+    slot.onclick = () => pilihFoto(i);
+    slot.innerHTML = `<span class="slot-icon">${icons[i]}</span><span class="slot-label">${labels[i]}</span>`;
+    document.getElementById('fileInput' + i).value = '';
+  }
+  // Restore cards
+  document.querySelectorAll('#step4 > .card, #step4 > .btn-row').forEach(el => el.style.display = '');
+  document.getElementById('successPage').classList.remove('show');
+
+  currentStep = 1;
+  showStepEl(1);
+}
+
+/* ============================================================
+   RIWAYAT (localStorage)
+============================================================ */
+function simpanRiwayat(data) {
+  try {
+    const raw = localStorage.getItem('siap_riwayat') || '[]';
+    const list = JSON.parse(raw);
+    list.unshift({
+      id:      Date.now(),
+      nama:    data.nama,
+      jabatan: data.jabatan,
+      tanggal: data.tanggal,
+      waktu:   data.waktu,
+      status:  data.status,
+      di:      data.daerahIrigasi,
+      kegiatan:data.kegiatan.length,
+      foto:    data.fotos.length
+    });
+    if (list.length > 50) list.pop();
+    localStorage.setItem('siap_riwayat', JSON.stringify(list));
+  } catch(e) { console.warn(e); }
+}
+
+function renderRiwayat() {
+  const el = document.getElementById('riwayatList');
+  try {
+    const raw = localStorage.getItem('siap_riwayat') || '[]';
+    const list = JSON.parse(raw);
+    if (list.length === 0) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>Belum ada riwayat laporan</p></div>`;
+      return;
+    }
+    el.innerHTML = list.map(r => {
+      // Mengubah kondisi kelas badge default (sekarang biru)
+      const cls = r.status === 'Ijin/Sakit' ? 'ijin' : r.status === 'Tidak Hadir' ? 'tidak' : '';
+      return `
+        <div class="riwayat-card ${cls}">
+          <div class="rw-head">
+            <div class="rw-name">${r.nama}</div>
+            <div class="rw-badge">${r.status}</div>
+          </div>
+          <div class="rw-info">📅 ${r.tanggal} ${r.waktu} &nbsp;|&nbsp; 🌾 ${r.di}</div>
+          <div class="rw-info" style="margin-top:3px">🏷️ ${r.jabatan} &nbsp;|&nbsp; 📋 ${r.kegiatan} kegiatan &nbsp;|&nbsp; 📸 ${r.foto} foto</div>
+        </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>Gagal memuat riwayat</p></div>`;
+  }
+}
+</script>
+</body>
+</html>
