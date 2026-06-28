@@ -26,9 +26,7 @@
    Ganti URL di bawah setelah deploy Google Apps Script.
    Lihat tab Panduan di aplikasi untuk langkah lengkapnya.
 ============================================================ */
-const APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbwT98HJRItUbgLIFNyS30-WIINera2rnTCoLM_BZK3vJysM1a0EBR37J-6ItmYNV-xFcQ/exec";
-
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwhwpeYCzlrbmLomWaW_rNRMx6HARS_XMW4aSMPuESZv6ggs-e8SsLGyE06IqjCzzPC/exec";
 
 /* ============================================================
    2. STATE GLOBAL
