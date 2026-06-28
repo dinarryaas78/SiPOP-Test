@@ -27,6 +27,8 @@
    Lihat tab Panduan di aplikasi untuk langkah lengkapnya.
 ============================================================ */
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwhwpeYCzlrbmLomWaW_rNRMx6HARS_XMW4aSMPuESZv6ggs-e8SsLGyE06IqjCzzPC/exec";
+const SHEET_ID = '19YkOFuM_MRV8XfXqBJBIU-9ISPqr3XC63Lw2Yz2JHzA';
+const SHEET_NAME = 'Sheet1';
 
 /* ============================================================
    2. STATE GLOBAL
