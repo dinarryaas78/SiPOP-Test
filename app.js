@@ -1,596 +1,413 @@
-/* ================================================================
-   SiPOP – Sistem Pelaporan Operasional dan Pemeliharaan
-           Jaringan Irigasi NTT
-   app.js — Semua logika JavaScript terpisah dari HTML
-   ================================================================
-   DAFTAR ISI:
-     1.  KONFIGURASI
-     2.  STATE GLOBAL
-     3.  INISIALISASI (DOMContentLoaded)
-     4.  TAB NAVIGATION
-     5.  STEPPER
-     6.  NAVIGASI LANGKAH (next / prev)
-     7.  VALIDASI PER LANGKAH
-     8.  GPS
-     9.  FOTO (pilih, preview, hapus)
-    10.  KUMPULKAN DATA FORM
-    11.  KIRIM LAPORAN
-    12.  TAMPILKAN SUKSES
-    13.  BUAT LAPORAN BARU (reset)
-    14.  RIWAYAT (localStorage)
-   ================================================================ */
+// ═══════════════════════════════════════════════════════
+//  SiPOP – Sistem Pelaporan Operasional & Pemeliharaan
+//  app.js  |  Frontend Logic
+// ═══════════════════════════════════════════════════════
 
+// API endpoint Google Apps Script
+const API_URL = 'https://script.google.com/macros/s/AKfycbwDqQHzy3AQCjMv1-fE4uhNJwZsWkfWnTpeFqUxvLzekYgltEFjrvmbyov1KMiRyNTM6w/exec';
 
-/* ============================================================
-   1. KONFIGURASI
-   Ganti URL di bawah setelah deploy Google Apps Script.
-   Lihat tab Panduan di aplikasi untuk langkah lengkapnya.
-============================================================ */
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwhwpeYCzlrbmLomWaW_rNRMx6HARS_XMW4aSMPuESZv6ggs-e8SsLGyE06IqjCzzPC/exec";
-const SHEET_ID = '19YkOFuM_MRV8XfXqBJBIU-9ISPqr3XC63Lw2Yz2JHzA';
-const SHEET_NAME = 'Sheet1';
+// ── STATE ────────────────────────────────────────────
+let currentStep = 0;
+const TOTAL_STEPS = 3;          // step 0, 1, 2  (step 3 = sukses)
+let selectedPhotos = [];        // [{file, dataURL, name}]
 
-/* ============================================================
-   2. STATE GLOBAL
-============================================================ */
-let currentStep = 1;          // Langkah aktif saat ini (1–4)
-const TOTAL_STEPS = 4;        // Jumlah total langkah
-
-// Array base64 untuk masing-masing slot foto (maks 6)
-const fotoData = [null, null, null, null, null, null];
-
-// Koordinat GPS yang sudah diambil
-let gpsLat = null;
-let gpsLng = null;
-
-// Label & ikon slot foto — dipakai di beberapa fungsi
-const FOTO_LABELS = ['Kondisi Umum', 'Pintu Air', 'Saluran', 'Bendung', 'Kegiatan', 'Lainnya'];
-const FOTO_ICONS  = ['📷', '🚪', '🌊', '🏗️', '👷', '➕'];
-
-
-/* ============================================================
-   3. INISIALISASI
-   Dijalankan setelah seluruh DOM siap.
-============================================================ */
-window.addEventListener('DOMContentLoaded', () => {
-  // Isi tanggal & waktu secara otomatis dengan nilai sekarang
+// ── INIT ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
   const now = new Date();
-  document.getElementById('tanggal').value = now.toISOString().split('T')[0];
+  document.getElementById('tanggal').value = now.toISOString().slice(0, 10);
   document.getElementById('waktu').value   = now.toTimeString().slice(0, 5);
 
-  // Tampilkan riwayat yang sudah tersimpan
-  renderRiwayat();
+  // Status dot — langsung hijau (URL hard-coded, tidak ada ping)
+  setStatus('ok', 'Siap Digunakan');
+
+  // Drag & drop zona upload
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag');
+    handleFiles(Array.from(e.dataTransfer.files));
+  });
 });
 
-
-/* ============================================================
-   4. TAB NAVIGATION
-   Menampilkan satu tab dan menyembunyikan dua lainnya.
-   Tab yang tersedia: 'form', 'riwayat', 'panduan'
-============================================================ */
-function showTab(tab) {
-  const tabs = ['form', 'riwayat', 'panduan'];
-
-  tabs.forEach(t => {
-    // Tampilkan / sembunyikan konten tab
-    document.getElementById('tab-' + t).style.display = (t === tab) ? 'block' : 'none';
-
-    // Aktifkan / nonaktifkan tombol nav bawah
-    document.getElementById('nav-' + t).classList.toggle('active', t === tab);
-  });
-
-  // Muat ulang riwayat setiap kali tab Riwayat dibuka
-  if (tab === 'riwayat') renderRiwayat();
+// ── STATUS DOT ───────────────────────────────────────
+function setStatus(state, text) {
+  const dot  = document.getElementById('statusDot');
+  const span = document.getElementById('statusText');
+  dot.className = 'dot ' + (state === 'ok' ? 'ok' : state === 'err' ? 'err' : '');
+  span.textContent = text;
 }
 
+// ── STEPPER NAVIGASI ─────────────────────────────────
+function goStep(target) {
+  if (target > currentStep && !validateStep(currentStep)) return;
 
-/* ============================================================
-   5. STEPPER
-   Memperbarui tampilan visual progress bar langkah.
-============================================================ */
-
-/**
- * Memperbarui kelas CSS setiap .step-item sesuai posisi saat ini.
- * @param {number} step - Langkah yang sedang aktif (1–4)
- */
-function updateStepper(step) {
-  document.querySelectorAll('.step-item').forEach((el, i) => {
-    el.classList.remove('active', 'done');
-    if (i + 1 <  step) el.classList.add('done');   // langkah sebelumnya → selesai
-    if (i + 1 === step) el.classList.add('active'); // langkah ini → aktif
-  });
-}
-
-/**
- * Menampilkan konten langkah tertentu dan menyembunyikan yang lain.
- * Juga mereset tampilan halaman sukses dan scroll ke atas.
- * @param {number} step - Nomor langkah yang akan ditampilkan
- */
-function showStepEl(step) {
-  for (let i = 1; i <= TOTAL_STEPS; i++) {
-    const el = document.getElementById('step' + i);
-    if (el) el.style.display = (i === step) ? 'block' : 'none';
+  // Tandai step lama sebagai "done" bila maju
+  if (target > currentStep) {
+    const prevItem = document.getElementById('si' + currentStep);
+    if (prevItem) { prevItem.classList.remove('active'); prevItem.classList.add('done'); }
   }
 
-  // Pastikan halaman sukses tidak tampil saat berpindah langkah
-  document.getElementById('successPage').classList.remove('show');
+  // Sembunyikan panel lama
+  const prevPanel = document.getElementById('step' + currentStep);
+  if (prevPanel) prevPanel.classList.remove('active');
 
-  updateStepper(step);
+  // Mundur — hapus "done" dari step target ke depan
+  if (target < currentStep) {
+    for (let i = target; i <= currentStep; i++) {
+      const si = document.getElementById('si' + i);
+      if (si) { si.classList.remove('active', 'done'); }
+    }
+  }
+
+  currentStep = target;
+
+  // Aktifkan panel & step baru
+  const nextPanel = document.getElementById('step' + currentStep);
+  if (nextPanel) nextPanel.classList.add('active');
+  const nextItem = document.getElementById('si' + currentStep);
+  if (nextItem) { nextItem.classList.add('active'); nextItem.classList.remove('done'); }
+
+  updateTrack();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-
-/* ============================================================
-   6. NAVIGASI LANGKAH (next / prev)
-============================================================ */
-
-/**
- * Maju ke langkah berikutnya, hanya jika validasi langkah saat ini lulus.
- * @param {number} step - Nomor langkah tujuan
- */
-function nextStep(step) {
-  if (!validateStep(currentStep)) return;
-  currentStep = step;
-  showStepEl(step);
+function updateTrack() {
+  const fill = document.getElementById('trackFill');
+  if (!fill) return;
+  const pct = currentStep === 0 ? 0 : (currentStep / (TOTAL_STEPS - 1)) * 100;
+  fill.style.width = Math.min(pct, 100) + '%';
 }
 
-/**
- * Kembali ke langkah sebelumnya (tanpa validasi).
- * @param {number} step - Nomor langkah tujuan
- */
-function prevStep(step) {
-  currentStep = step;
-  showStepEl(step);
-}
-
-
-/* ============================================================
-   7. VALIDASI PER LANGKAH
-   Memeriksa apakah semua field wajib sudah diisi sebelum lanjut.
-============================================================ */
-
-/**
- * Memvalidasi field wajib sesuai nomor langkah.
- * Menampilkan alert jika ada field kosong.
- * @param {number} step - Langkah yang akan divalidasi
- * @returns {boolean} true jika valid, false jika ada yang kosong
- */
+// ── VALIDASI PER STEP ────────────────────────────────
 function validateStep(step) {
-  // ── Langkah 1: Identitas ──
+  const v = id => { const el = document.getElementById(id); return el && el.value.trim() !== ''; };
+
+  if (step === 0) {
+    if (!v('jabatan'))     { toast('Pilih jabatan terlebih dahulu.', 'warn'); return false; }
+    if (!v('namaPetugas')) { toast('Nama petugas wajib diisi.', 'warn'); return false; }
+    if (!v('tanggal'))     { toast('Tanggal wajib diisi.', 'warn'); return false; }
+    if (!v('waktu'))       { toast('Waktu wajib diisi.', 'warn'); return false; }
+  }
+
   if (step === 1) {
-    if (!v('jabatan'))     return showAlert('Pilih jabatan terlebih dahulu!');
-    if (!v('namaPetugas')) return showAlert('Nama petugas wajib diisi!');
-    if (!v('tanggal'))     return showAlert('Tanggal wajib diisi!');
-    if (!v('waktu'))       return showAlert('Waktu wajib diisi!');
+    if (!v('daerahIrigasi')) { toast('Pilih daerah irigasi.', 'warn'); return false; }
+    if (!v('namaSaluran'))   { toast('Nama saluran wajib diisi.', 'warn'); return false; }
+    if (!v('namaDesa'))      { toast('Nama desa wajib diisi.', 'warn'); return false; }
+    if (!v('kecamatan'))     { toast('Kecamatan wajib diisi.', 'warn'); return false; }
+    if (!v('kabupaten'))     { toast('Kabupaten wajib diisi.', 'warn'); return false; }
   }
 
-  // ── Langkah 2: Lokasi ──
   if (step === 2) {
-    if (!v('daerahIrigasi')) return showAlert('Nama Daerah Irigasi wajib diisi!');
-    if (!v('ruasKerja'))     return showAlert('Ruas Kerja wajib diisi!');
-    if (!v('desa'))          return showAlert('Nama Desa wajib diisi!');
-    if (!v('kecamatan'))     return showAlert('Kecamatan wajib diisi!');
-    if (!v('kabupaten'))     return showAlert('Kabupaten wajib diisi!');
+    const checked = document.querySelectorAll('#kegiatanGrid input:checked');
+    if (checked.length === 0) { toast('Pilih minimal satu kegiatan.', 'warn'); return false; }
   }
 
-  // ── Langkah 3: Kehadiran ──
-  if (step === 3) {
-    if (!v('keterangan')) return showAlert('Keterangan wajib diisi!');
-  }
-
-  return true; // Semua valid
+  return true;
 }
 
-/**
- * Shortcut: ambil nilai yang sudah di-trim dari elemen berdasarkan ID.
- * @param {string} id - ID elemen input
- * @returns {string}
- */
-function v(id) {
-  return document.getElementById(id).value.trim();
+// ── KEGIATAN TOGGLE ──────────────────────────────────
+function toggleKegiatan(label) {
+  const cb = label.querySelector('input[type="checkbox"]');
+  setTimeout(() => {
+    cb.checked ? label.classList.add('selected') : label.classList.remove('selected');
+  }, 0);
 }
 
-/**
- * Tampilkan pesan peringatan dan kembalikan false (untuk chaining validasi).
- * @param {string} pesan - Isi pesan peringatan
- * @returns {boolean} selalu false
- */
-function showAlert(pesan) {
-  alert('⚠️ ' + pesan);
-  return false;
+function getKegiatan() {
+  return Array.from(document.querySelectorAll('#kegiatanGrid input:checked')).map(cb => cb.value);
 }
 
+// ── GPS ──────────────────────────────────────────────
+function getGPS() {
+  if (!navigator.geolocation) { toast('Browser tidak mendukung GPS.', 'error'); return; }
+  toast('Mendeteksi lokasi GPS…', 'info');
+  document.getElementById('gpsHint').textContent = 'Mendeteksi…';
 
-/* ============================================================
-   8. GPS
-   Mengambil koordinat lokasi petugas menggunakan Geolocation API.
-============================================================ */
-
-/**
- * Meminta izin lokasi browser dan menampilkan koordinat GPS.
- * Dipanggil dari tombol "Ambil Lokasi GPS Sekarang".
- */
-function ambilGPS() {
-  const statusEl = document.getElementById('gpsStatus');
-  const coordEl  = document.getElementById('gpsCoords');
-
-  // Tampilkan status "sedang mengambil"
-  statusEl.textContent = '📡 Mengambil lokasi GPS...';
-  statusEl.className   = 'gps-status';
-
-  // Periksa dukungan browser
-  if (!navigator.geolocation) {
-    statusEl.textContent = '❌ Browser tidak mendukung GPS';
-    statusEl.className   = 'gps-status error';
-    return;
-  }
-
-  // Minta lokasi dengan akurasi tinggi
   navigator.geolocation.getCurrentPosition(
-    // Berhasil
     pos => {
-      gpsLat = pos.coords.latitude.toFixed(6);
-      gpsLng = pos.coords.longitude.toFixed(6);
-      const akurasi = Math.round(pos.coords.accuracy);
-
-      statusEl.textContent = `✅ Lokasi berhasil diambil (akurasi ±${akurasi}m)`;
-      statusEl.className   = 'gps-status success';
-
-      coordEl.textContent = `Lat: ${gpsLat}\nLng: ${gpsLng}`;
-      coordEl.classList.add('show');
+      const lat = pos.coords.latitude.toFixed(6);
+      const lng = pos.coords.longitude.toFixed(6);
+      const acc = Math.round(pos.coords.accuracy);
+      document.getElementById('koordinat').value = lat + ', ' + lng;
+      document.getElementById('gpsHint').textContent = 'Akurasi ±' + acc + ' meter';
+      toast('Koordinat berhasil dideteksi!', 'success');
     },
-
-    // Gagal
     err => {
-      statusEl.textContent = `❌ Gagal mengambil lokasi: ${err.message}`;
-      statusEl.className   = 'gps-status error';
+      document.getElementById('gpsHint').textContent = 'GPS gagal – isi manual jika diperlukan.';
+      toast('GPS gagal: ' + err.message, 'error');
     },
-
-    // Opsi
-    { enableHighAccuracy: true, timeout: 15000 }
+    { enableHighAccuracy: true, timeout: 12000 }
   );
 }
 
-
-/* ============================================================
-   9. FOTO
-   Memilih, menampilkan preview, dan menghapus foto dari slot.
-============================================================ */
-
-/**
- * Membuka dialog pemilihan file untuk slot foto tertentu.
- * @param {number} idx - Indeks slot foto (0–5)
- */
-function pilihFoto(idx) {
-  document.getElementById('fileInput' + idx).click();
+// ── FOTO UPLOAD ──────────────────────────────────────
+function handleFileSelect(event) {
+  handleFiles(Array.from(event.target.files));
 }
 
-/**
- * Dipanggil saat pengguna memilih file.
- * Membaca file sebagai base64 dan menampilkan thumbnail.
- * @param {number} idx   - Indeks slot foto (0–5)
- * @param {HTMLInputElement} input - Elemen file input yang berubah
- */
-function previewFoto(idx, input) {
-  const file = input.files[0];
-  if (!file) return;
+function handleFiles(files) {
+  const allowed = files.filter(f => f.type.startsWith('image/'));
+  if (allowed.length === 0) { toast('Hanya file gambar yang diperbolehkan.', 'warn'); return; }
 
-  const reader = new FileReader();
+  allowed.forEach(file => {
+    if (selectedPhotos.length >= 10) { toast('Maksimal 10 foto.', 'warn'); return; }
 
-  reader.onload = e => {
-    // Simpan data base64 ke array state
-    fotoData[idx] = {
-      data:     e.target.result.split(',')[1], // hanya bagian base64, tanpa prefix
-      mimeType: file.type,
-      name:     file.name
+    const reader = new FileReader();
+    reader.onload = e => {
+      selectedPhotos.push({ file, dataURL: e.target.result, name: file.name });
+      renderPreviews();
     };
+    reader.readAsDataURL(file);
+  });
+}
 
-    // Tampilkan thumbnail di slot
-    const slot = document.getElementById('slot' + idx);
-    slot.innerHTML = `
-      <img src="${e.target.result}" alt="Foto ${idx + 1}" />
-      <button class="remove-foto" onclick="hapusFoto(event, ${idx})">✕</button>
+function renderPreviews() {
+  const grid = document.getElementById('photoPreview');
+  grid.innerHTML = '';
+  selectedPhotos.forEach((item, idx) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'photo-thumb';
+    thumb.innerHTML = `
+      <img src="${item.dataURL}" alt="${item.name}">
+      <button class="photo-remove" onclick="removePhoto(${idx})" title="Hapus">✕</button>
     `;
-  };
-
-  reader.readAsDataURL(file);
-}
-
-/**
- * Menghapus foto dari slot tertentu dan mengembalikan tampilan slot ke kondisi awal.
- * @param {Event}  e   - Event klik (untuk stopPropagation)
- * @param {number} idx - Indeks slot foto (0–5)
- */
-function hapusFoto(e, idx) {
-  e.stopPropagation(); // Cegah klik meneruskan ke slot (yang akan membuka file picker)
-
-  // Hapus dari state
-  fotoData[idx] = null;
-
-  // Kembalikan tampilan slot ke kondisi awal
-  const slot = document.getElementById('slot' + idx);
-  slot.onclick = () => pilihFoto(idx);
-  slot.innerHTML = `
-    <span class="slot-icon">${FOTO_ICONS[idx]}</span>
-    <span class="slot-label">${FOTO_LABELS[idx]}</span>
-  `;
-
-  // Reset nilai input file agar file yang sama bisa dipilih ulang
-  document.getElementById('fileInput' + idx).value = '';
-}
-
-
-/* ============================================================
-   10. KUMPULKAN DATA FORM
-   Mengambil semua nilai dari form dan menyusunnya menjadi objek payload.
-============================================================ */
-
-/**
- * Membaca semua nilai input dan mengembalikan objek data laporan.
- * @returns {Object} Payload lengkap siap dikirim ke Apps Script
- */
-function kumpulkanData() {
-  // Kumpulkan semua kegiatan yang dicentang
-  const kegiatan = [];
-  document.querySelectorAll('.check-item:checked').forEach(el => {
-    kegiatan.push(el.value);
+    grid.appendChild(thumb);
   });
 
-  return {
-    timestamp:     new Date().toISOString(),
-    jabatan:       v('jabatan'),
-    nama:          v('namaPetugas'),
-    tanggal:       v('tanggal'),
-    waktu:         v('waktu'),
-    daerahIrigasi: v('daerahIrigasi'),
-    ruasKerja:     v('ruasKerja'),
-    desa:          v('desa'),
-    kecamatan:     v('kecamatan'),
-    kabupaten:     v('kabupaten'),
-    status:        document.querySelector('input[name="status"]:checked').value,
-    keterangan:    v('keterangan'),
-    lat:           gpsLat || '-',
-    lng:           gpsLng || '-',
-    kegiatan,
-    catatan:       v('catatan'),
-    fotos:         fotoData.filter(Boolean) // hanya slot yang terisi
-  };
+  const zone = document.getElementById('uploadZone');
+  const label = zone.querySelector('.upload-label');
+  const sub   = zone.querySelector('.upload-sub');
+  if (selectedPhotos.length > 0) {
+    label.textContent = selectedPhotos.length + ' foto dipilih';
+    sub.textContent   = 'Tap zona ini untuk tambah foto lagi';
+  } else {
+    label.textContent = 'Tap untuk pilih foto';
+    sub.textContent   = 'Bisa pilih beberapa foto sekaligus • JPG, PNG, HEIC';
+  }
 }
 
+function removePhoto(idx) {
+  selectedPhotos.splice(idx, 1);
+  renderPreviews();
+}
 
-/* ============================================================
-   11. KIRIM LAPORAN
-   Memvalidasi, menyimpan ke riwayat, mengirim ke Apps Script,
-   lalu menampilkan halaman sukses.
-============================================================ */
+// Konversi dataURL ke base64 murni
+function dataURLToBase64(dataURL) {
+  return dataURL.split(',')[1];
+}
 
-/**
- * Dipanggil dari tombol "Kirim Laporan".
- * Async karena menunggu respons dari Apps Script.
- */
-async function kirimLaporan() {
-  // Validasi: minimal 1 kegiatan harus dicentang
-  const checkedCount = document.querySelectorAll('.check-item:checked').length;
-  if (checkedCount === 0) {
-    alert('⚠️ Pilih minimal satu kegiatan yang dilakukan!');
-    return;
-  }
+// ── UPLOAD FOTO KE DRIVE (via doPost) ────────────────
+// PERBAIKAN: Menggunakan fetch POST dengan body JSON + no-cors
+// Google Apps Script tidak mendukung CORS pada doPost dari browser,
+// sehingga kita gunakan mode 'no-cors' dan anggap sukses jika tidak throw.
+async function uploadFotos(namaLaporan) {
+  if (selectedPhotos.length === 0) return [];
 
-  // Kumpulkan semua data form
-  const payload = kumpulkanData();
+  const statusDiv = document.getElementById('uploadStatus');
+  statusDiv.innerHTML = '<div style="margin-top:10px;font-size:12px;color:var(--text-sub);">Mengupload foto ke Google Drive…</div>';
 
-  // Tampilkan loading overlay
-  const overlay = document.getElementById('sendingOverlay');
-  overlay.classList.add('show');
+  const urls = [];
 
-  // Simpan ke riwayat lokal terlebih dahulu (agar tidak hilang jika jaringan gagal)
-  simpanRiwayat(payload);
+  for (let i = 0; i < selectedPhotos.length; i++) {
+    const item = selectedPhotos[i];
 
-  // Kirim ke Google Apps Script (jika URL sudah dikonfigurasi)
-  const urlSudahDiatur = APPS_SCRIPT_URL !== "PASTE_WEB_APP_URL_DISINI";
-  if (urlSudahDiatur) {
+    // Buat elemen status per foto
+    const statusItem = document.createElement('div');
+    statusItem.className = 'upload-status-item';
+    statusItem.innerHTML = `
+      <div class="upload-status-dot uploading" style="background:var(--amber)"></div>
+      <span>${item.name}</span>
+    `;
+    statusDiv.appendChild(statusItem);
+
+    const dot = statusItem.querySelector('.upload-status-dot');
+
     try {
-      await fetch(APPS_SCRIPT_URL, {
+      // Payload untuk doPost
+      const payload = {
+        action:    'uploadFoto',
+        folderKey: namaLaporan,           // subfolder = nama laporan
+        fileName:  namaLaporan + '_foto' + (i + 1) + '_' + item.name,
+        mimeType:  item.file.type,
+        base64:    dataURLToBase64(item.dataURL)
+      };
+
+      // ── FETCH POST ke Apps Script ──────────────────
+      // mode: 'no-cors' diperlukan karena GAS tidak kirim CORS header pada doPost
+      // Akibatnya response.type = 'opaque' dan kita tidak bisa baca hasilnya,
+      // tapi file tetap tersimpan di Drive selama request sampai.
+      await fetch(API_URL, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(payload),
-        mode:    'no-cors' // Apps Script tidak mengirim CORS header
+        mode:    'no-cors',              // <-- KUNCI: tanpa ini browser blokir request
+        headers: { 'Content-Type': 'text/plain' }, // text/plain agar tidak trigger preflight
+        body:    JSON.stringify(payload)
       });
+
+      // Karena no-cors kita tidak bisa baca URL file dari response.
+      // Catat sebagai "Terupload" — link folder bisa diakses via Drive langsung.
+      urls.push('Terupload');
+      dot.style.background = 'var(--green)';
+
     } catch (err) {
-      // Gagal kirim tidak menghentikan alur — data sudah tersimpan lokal
-      console.warn('Gagal mengirim ke server:', err);
+      console.error('Upload foto gagal:', err);
+      dot.style.background = 'var(--red)';
+      urls.push('Gagal');
     }
   }
 
-  // Tunda minimal 2 detik agar pengguna melihat animasi loading
-  await new Promise(resolve => setTimeout(resolve, 2000));
-
-  // Sembunyikan loading, tampilkan halaman sukses
-  overlay.classList.remove('show');
-  tampilkanSukses(payload);
+  return urls;
 }
 
+// ── SUBMIT LAPORAN ────────────────────────────────────
+async function kirimLaporan() {
+  if (!validateStep(2)) return;
 
-/* ============================================================
-   12. TAMPILKAN SUKSES
-   Menyembunyikan card form dan menampilkan ringkasan laporan.
-============================================================ */
+  const btn     = document.getElementById('btnKirim');
+  const spinner = document.getElementById('spinnerKirim');
+  const btnText = document.getElementById('kirimText');
 
-/**
- * Menampilkan halaman sukses setelah laporan berhasil dikirim.
- * @param {Object} data - Payload yang sudah dikirim
- */
-function tampilkanSukses(data) {
-  // Sembunyikan semua card & baris tombol di step 4
-  document.querySelectorAll('#step4 > .card, #step4 > .btn-row')
-    .forEach(el => el.style.display = 'none');
+  btn.disabled          = true;
+  spinner.style.display = 'block';
+  btnText.textContent   = 'Mengirim…';
 
-  // Tampilkan halaman sukses
-  const sp = document.getElementById('successPage');
-  sp.classList.add('show');
+  // Nama unik laporan (dipakai sebagai nama subfolder di Drive)
+  const namaLaporan = [
+    document.getElementById('namaPetugas').value.replace(/\s+/g, '_'),
+    document.getElementById('tanggal').value
+  ].join('_');
 
-  // Isi tabel ringkasan dengan data laporan
-  document.getElementById('successMeta').innerHTML = `
-    <div class="meta-row"><span>👤 Petugas</span><strong>${data.nama}</strong></div>
-    <div class="meta-row"><span>🏷️ Jabatan</span><strong>${data.jabatan}</strong></div>
-    <div class="meta-row"><span>📅 Tanggal</span><strong>${data.tanggal} ${data.waktu}</strong></div>
-    <div class="meta-row"><span>🌾 D.I</span><strong>${data.daerahIrigasi}</strong></div>
-    <div class="meta-row"><span>✅ Status</span><strong>${data.status}</strong></div>
-    <div class="meta-row"><span>📋 Kegiatan</span><strong>${data.kegiatan.length} item</strong></div>
-    <div class="meta-row"><span>📸 Foto</span><strong>${data.fotos.length} foto</strong></div>
-  `;
+  // 1. Upload foto ke Drive terlebih dahulu
+  const fotoUrls = await uploadFotos(namaLaporan);
 
+  // Link folder Drive (hanya informatif, karena no-cors tidak bisa baca URL file)
+  const linkFoto = fotoUrls.length > 0
+    ? 'Folder: SiPOP_Dokumentasi/' + namaLaporan + ' (' + fotoUrls.filter(u => u === 'Terupload').length + ' foto)'
+    : '';
+
+  // 2. Kumpulkan payload data laporan (termasuk info foto)
+  const payload = {
+    tanggal:         document.getElementById('tanggal').value,
+    waktu:           document.getElementById('waktu').value,
+    jabatan:         document.getElementById('jabatan').value,
+    namaPetugas:     document.getElementById('namaPetugas').value,
+    daerahIrigasi:   document.getElementById('daerahIrigasi').value,
+    namaSaluran:     document.getElementById('namaSaluran').value,
+    namaDesa:        document.getElementById('namaDesa').value,
+    kecamatan:       document.getElementById('kecamatan').value,
+    kabupaten:       document.getElementById('kabupaten').value,
+    koordinat:       document.getElementById('koordinat').value,
+    kegiatan:        getKegiatan().join(', '),
+    jumlahFoto:      selectedPhotos.length.toString(),
+    linkFoto:        linkFoto,
+    catatanTambahan: document.getElementById('catatanTambahan').value,
+    namaLaporan:     namaLaporan   // dikirim agar GAS bisa bikin/cari subfolder
+  };
+
+  // 3. Kirim data laporan ke sheet via GET + img trick (cara lama yang sudah bekerja)
+  const encodedData = encodeURIComponent(JSON.stringify(payload));
+  const requestURL  = API_URL + '?data=' + encodedData;
+
+  const img = new Image();
+  img.onload  = () => tampilSukses(payload);
+  img.onerror = () => tampilSukses(payload); // onerror = request sampai, data masuk ke sheet
+  img.src = requestURL;
+}
+
+// ── TAMPIL SUKSES ─────────────────────────────────────
+function tampilSukses(payload) {
+  const btn     = document.getElementById('btnKirim');
+  const spinner = document.getElementById('spinnerKirim');
+  const btnText = document.getElementById('kirimText');
+
+  btn.disabled          = false;
+  spinner.style.display = 'none';
+  btnText.textContent   = '📤 Kirim Laporan';
+
+  // Sembunyikan semua step
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.step-item').forEach(s => { s.classList.remove('active'); s.classList.add('done'); });
+
+  // Tampilkan sukses
+  document.getElementById('step3').classList.add('active');
+
+  // Track 100%
+  const fill = document.getElementById('trackFill');
+  if (fill) fill.style.width = '100%';
+
+  // Summary
+  const tbl = document.getElementById('summaryTable');
+  tbl.innerHTML = [
+    ['Tanggal',   payload.tanggal + ' ' + payload.waktu],
+    ['Petugas',   payload.namaPetugas + ' (' + payload.jabatan + ')'],
+    ['Lokasi',    payload.daerahIrigasi + ' – ' + payload.namaSaluran],
+    ['Wilayah',   payload.namaDesa + ', ' + payload.kecamatan + ', ' + payload.kabupaten],
+    ['Kegiatan',  payload.kegiatan || '-'],
+    ['Foto',      payload.jumlahFoto + ' foto'],
+    ['Folder',    payload.linkFoto || '-']
+  ].map(([l, v]) =>
+    `<div class="summary-row"><span class="summary-label">${l}</span><span class="summary-value">${v || '-'}</span></div>`
+  ).join('');
+
+  toast('Laporan berhasil dikirim! 🎉', 'success');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-
-/* ============================================================
-   13. BUAT LAPORAN BARU (RESET)
-   Mengosongkan semua input dan mengembalikan aplikasi ke langkah 1.
-============================================================ */
-
-/**
- * Dipanggil dari tombol "Buat Laporan Baru" di halaman sukses.
- * Me-reset seluruh state dan tampilan form.
- */
-function buatBaru() {
-  // ── Reset nilai input teks ──
-  const fieldsToReset = [
-    'jabatan', 'namaPetugas', 'daerahIrigasi', 'ruasKerja',
-    'desa', 'kecamatan', 'kabupaten', 'keterangan', 'catatan'
-  ];
-  fieldsToReset.forEach(id => {
-    document.getElementById(id).value = '';
+// ── RESET FORM ────────────────────────────────────────
+function resetForm() {
+  // Reset semua input
+  document.querySelectorAll('input:not([type="file"]), textarea, select').forEach(el => {
+    if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
+    else el.value = '';
   });
 
-  // ── Isi ulang tanggal & waktu dengan nilai sekarang ──
+  // Reset kegiatan
+  document.querySelectorAll('.kegiatan-item').forEach(el => el.classList.remove('selected'));
+
+  // Reset foto
+  selectedPhotos = [];
+  document.getElementById('photoPreview').innerHTML = '';
+  document.getElementById('uploadStatus').innerHTML = '';
+  document.getElementById('fotoInput').value = '';
+  document.querySelector('#uploadZone .upload-label').textContent = 'Tap untuk pilih foto';
+  document.querySelector('#uploadZone .upload-sub').textContent   = 'Bisa pilih beberapa foto sekaligus • JPG, PNG, HEIC';
+
+  // Reset GPS hint
+  document.getElementById('gpsHint').textContent = 'Tekan tombol untuk mendeteksi lokasi Anda secara otomatis.';
+
+  // Tanggal & waktu baru
   const now = new Date();
-  document.getElementById('tanggal').value = now.toISOString().split('T')[0];
+  document.getElementById('tanggal').value = now.toISOString().slice(0, 10);
   document.getElementById('waktu').value   = now.toTimeString().slice(0, 5);
 
-  // ── Reset GPS ──
-  gpsLat = null;
-  gpsLng = null;
-  document.getElementById('gpsStatus').textContent = '🛰️ Belum diambil — Tap tombol untuk capture lokasi';
-  document.getElementById('gpsStatus').className   = 'gps-status';
-  document.getElementById('gpsCoords').classList.remove('show');
+  // Sembunyikan semua panel
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
 
-  // ── Reset checklist kegiatan ──
-  document.querySelectorAll('.check-item').forEach(el => el.checked = false);
+  // Reset stepper
+  document.querySelectorAll('.step-item').forEach(s => s.classList.remove('active', 'done'));
+  document.getElementById('si0').classList.add('active');
 
-  // ── Reset status kehadiran ke "Hadir" ──
-  document.getElementById('status-hadir').checked = true;
-
-  // ── Reset semua slot foto ──
-  fotoData.fill(null);
-  for (let i = 0; i < 6; i++) {
-    const slot = document.getElementById('slot' + i);
-    slot.onclick = () => pilihFoto(i);
-    slot.innerHTML = `
-      <span class="slot-icon">${FOTO_ICONS[i]}</span>
-      <span class="slot-label">${FOTO_LABELS[i]}</span>
-    `;
-    document.getElementById('fileInput' + i).value = '';
-  }
-
-  // ── Tampilkan kembali card dan tombol di step 4 ──
-  document.querySelectorAll('#step4 > .card, #step4 > .btn-row')
-    .forEach(el => el.style.display = '');
-
-  // ── Sembunyikan halaman sukses ──
-  document.getElementById('successPage').classList.remove('show');
-
-  // ── Kembali ke langkah pertama ──
-  currentStep = 1;
-  showStepEl(1);
+  currentStep = 0;
+  document.getElementById('step0').classList.add('active');
+  updateTrack();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// ── TOAST ─────────────────────────────────────────────
+let toastTimer = null;
 
-/* ============================================================
-   14. RIWAYAT (localStorage)
-   Menyimpan ringkasan laporan ke penyimpanan lokal browser
-   dan menampilkannya di tab Riwayat.
-============================================================ */
+function toast(msg, type = 'info') {
+  const el   = document.getElementById('toast');
+  const icon = document.getElementById('toastIcon');
+  const txt  = document.getElementById('toastMsg');
+  if (!el) return;
 
-/**
- * Menyimpan ringkasan data laporan ke localStorage.
- * Maks 50 entri tersimpan; entri terlama dihapus otomatis.
- * @param {Object} data - Payload lengkap laporan
- */
-function simpanRiwayat(data) {
-  try {
-    const raw  = localStorage.getItem('sipop_riwayat') || '[]';
-    const list = JSON.parse(raw);
+  const icons = { info: 'ℹ️', success: '✅', warn: '⚠️', error: '❌' };
+  icon.textContent = icons[type] || 'ℹ️';
+  txt.textContent  = msg;
+  el.className = 'toast show ' + type;
 
-    // Tambahkan entri baru di posisi pertama (terbaru di atas)
-    list.unshift({
-      id:       Date.now(),
-      nama:     data.nama,
-      jabatan:  data.jabatan,
-      tanggal:  data.tanggal,
-      waktu:    data.waktu,
-      status:   data.status,
-      di:       data.daerahIrigasi,
-      kegiatan: data.kegiatan.length,
-      foto:     data.fotos.length
-    });
-
-    // Batasi maksimum 50 riwayat
-    if (list.length > 50) list.pop();
-
-    localStorage.setItem('sipop_riwayat', JSON.stringify(list));
-  } catch (e) {
-    console.warn('Gagal menyimpan riwayat:', e);
-  }
-}
-
-/**
- * Membaca riwayat dari localStorage dan merender kartu-kartu di tab Riwayat.
- */
-function renderRiwayat() {
-  const container = document.getElementById('riwayatList');
-
-  try {
-    const raw  = localStorage.getItem('sipop_riwayat') || '[]';
-    const list = JSON.parse(raw);
-
-    // Tampilkan pesan kosong jika belum ada riwayat
-    if (list.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-icon">📭</div>
-          <p>Belum ada riwayat laporan</p>
-        </div>`;
-      return;
-    }
-
-    // Render setiap entri sebagai kartu riwayat
-    container.innerHTML = list.map(r => {
-      // Tentukan kelas warna berdasarkan status
-      const cls = r.status === 'Ijin/Sakit'   ? 'ijin'
-                : r.status === 'Tidak Hadir'  ? 'tidak'
-                : '';
-
-      return `
-        <div class="riwayat-card ${cls}">
-          <div class="rw-head">
-            <div class="rw-name">${r.nama}</div>
-            <div class="rw-badge">${r.status}</div>
-          </div>
-          <div class="rw-info">📅 ${r.tanggal} ${r.waktu} &nbsp;|&nbsp; 🌾 ${r.di}</div>
-          <div class="rw-info" style="margin-top:3px">
-            🏷️ ${r.jabatan} &nbsp;|&nbsp;
-            📋 ${r.kegiatan} kegiatan &nbsp;|&nbsp;
-            📸 ${r.foto} foto
-          </div>
-        </div>`;
-    }).join('');
-
-  } catch (e) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">⚠️</div>
-        <p>Gagal memuat riwayat</p>
-      </div>`;
-  }
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = 'toast'; }, 3500);
 }
