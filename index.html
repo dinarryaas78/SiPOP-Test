@@ -1,452 +1,943 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <!-- Mengubah warna tema meta menjadi biru utama -->
-  <meta name="theme-color" content="#0284c7" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>SiPOP – Sistem Pelaporan Operasional dan Pemeliharaan Jaringan Irigasi NTT</title>
-  <link rel="stylesheet" href="sipop-style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SiPOP – Sistem Pelaporan Operasional & Pemeliharaan</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & BASE ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue-deep:  #0A3D6B;
+  --blue-mid:   #1565C0;
+  --blue-light: #E8F0FE;
+  --teal:       #00838F;
+  --teal-light: #E0F7FA;
+  --amber:      #F57F17;
+  --amber-light:#FFF8E1;
+  --red:        #C62828;
+  --green:      #2E7D32;
+  --green-light:#E8F5E9;
+  --surface:    #F4F7FB;
+  --white:      #FFFFFF;
+  --border:     #D0DCF0;
+  --text-main:  #0D1B2A;
+  --text-sub:   #4A5568;
+  --text-mute:  #8A9BB5;
+  --radius:     14px;
+  --radius-sm:  8px;
+  --shadow:     0 2px 16px rgba(10,61,107,0.10);
+  --shadow-card:0 4px 32px rgba(10,61,107,0.13);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--surface);
+  color: var(--text-main);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ── HEADER ── */
+header {
+  background: linear-gradient(135deg, var(--blue-deep) 0%, var(--blue-mid) 100%);
+  color: white;
+  padding: 0 24px;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(10,61,107,0.25);
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-logo {
+  width: 40px;
+  height: 40px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.header-text h1 {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+
+.header-text p {
+  font-size: 11px;
+  opacity: 0.75;
+  font-weight: 400;
+  letter-spacing: 0.1px;
+}
+
+.header-badge {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(4px);
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #FFB300;
+  animation: pulse 1.8s infinite;
+}
+.dot.ok { background: #4CAF50; animation: none; }
+.dot.err { background: #F44336; animation: none; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ── STEPPER ── */
+.stepper-wrap {
+  background: white;
+  border-bottom: 1px solid var(--border);
+  padding: 20px 24px 0;
+  box-shadow: 0 1px 0 var(--border);
+}
+
+.stepper {
+  max-width: 620px;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+  padding-bottom: 0;
+}
+
+.step-track {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  height: 2px;
+  background: var(--border);
+  z-index: 0;
+}
+
+.step-track-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue-mid), var(--teal));
+  width: 0%;
+  transition: width 0.4s cubic-bezier(.4,0,.2,1);
+}
+
+.step-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  z-index: 1;
+  cursor: default;
+}
+
+.step-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.3s;
+  font-weight: 700;
+  color: var(--text-mute);
+}
+
+.step-item.active .step-circle {
+  background: var(--blue-mid);
+  border-color: var(--blue-mid);
+  box-shadow: 0 0 0 4px var(--blue-light);
+  color: white;
+  font-size: 15px;
+}
+
+.step-item.done .step-circle {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: white;
+}
+
+.step-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-mute);
+  text-align: center;
+  padding-bottom: 12px;
+  letter-spacing: 0.2px;
+}
+
+.step-item.active .step-label { color: var(--blue-mid); }
+.step-item.done .step-label   { color: var(--teal); }
+
+/* ── MAIN ── */
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 28px 16px 80px;
+}
+
+/* ── STEP PANELS ── */
+.panel { display: none; }
+.panel.active { display: block; animation: fadeUp 0.35s ease; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── CARD ── */
+.card {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 28px;
+  margin-bottom: 16px;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.icon-blue  { background: var(--blue-light); }
+.icon-teal  { background: var(--teal-light); }
+.icon-amber { background: var(--amber-light); }
+.icon-green { background: var(--green-light); }
+
+.card-head-text h2 {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.card-head-text p {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin-top: 2px;
+}
+
+/* ── STEP BADGE ── */
+.step-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--blue-light);
+  color: var(--blue-mid);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-radius: 20px;
+  padding: 3px 10px;
+  margin-bottom: 8px;
+}
+
+/* ── FIELDS ── */
+.field {
+  margin-bottom: 18px;
+}
+
+.field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 6px;
+}
+
+.req { color: var(--amber); }
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-main);
+  background: white;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.field select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234A5568' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--blue-mid);
+  box-shadow: 0 0 0 3px var(--blue-light);
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.field-hint {
+  font-size: 11px;
+  color: var(--text-mute);
+  margin-top: 4px;
+}
+
+/* ── SECTION DIVIDER ── */
+.section-divider {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-mute);
+  margin: 24px 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── GPS BUTTON ── */
+.gps-wrap {
+  display: flex;
+  gap: 8px;
+}
+
+.gps-wrap input { flex: 1; }
+
+.btn-gps {
+  flex-shrink: 0;
+  padding: 0 16px;
+  background: var(--teal-light);
+  color: var(--teal);
+  border: 1.5px solid var(--teal);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  transition: background 0.2s;
+  font-family: inherit;
+}
+
+.btn-gps:hover { background: #B2EBF2; }
+
+/* ── KEGIATAN CHECKLIST ── */
+.kegiatan-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.kegiatan-item {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.kegiatan-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  accent-color: var(--blue-mid);
+  cursor: pointer;
+}
+
+.kegiatan-item:hover { border-color: var(--blue-mid); background: var(--blue-light); }
+.kegiatan-item.selected { border-color: var(--blue-mid); background: var(--blue-light); }
+
+.kegiatan-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.3;
+}
+
+.kegiatan-text span {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-sub);
+  margin-top: 2px;
+}
+
+/* ── UPLOAD FOTO ── */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--surface);
+  position: relative;
+}
+
+.upload-zone:hover, .upload-zone.drag { border-color: var(--blue-mid); background: var(--blue-light); }
+
+.upload-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.upload-icon { font-size: 32px; margin-bottom: 8px; }
+.upload-label { font-size: 14px; font-weight: 600; color: var(--blue-mid); }
+.upload-sub { font-size: 12px; color: var(--text-mute); margin-top: 4px; }
+
+.photo-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.photo-thumb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1.5px solid var(--border);
+}
+
+.photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.photo-remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 20px;
+  height: 20px;
+  background: rgba(0,0,0,0.65);
+  color: white;
+  border-radius: 50%;
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.upload-progress {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-sub);
+  text-align: center;
+}
+
+.upload-status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.upload-status-item:last-child { border-bottom: none; }
+
+.upload-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── NAV BUTTONS ── */
+.nav-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  gap: 12px;
+}
+
+.btn-back {
+  padding: 11px 22px;
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-sub);
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.btn-back:hover { border-color: var(--blue-mid); color: var(--blue-mid); }
+
+.btn-next {
+  padding: 12px 28px;
+  background: linear-gradient(135deg, var(--blue-mid), var(--teal));
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  color: white;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 0.2s, transform 0.15s;
+  box-shadow: 0 4px 14px rgba(21,101,192,0.3);
+}
+
+.btn-next:hover { opacity: 0.93; transform: translateY(-1px); }
+.btn-next:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2.5px solid rgba(255,255,255,0.4);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── SUCCESS ── */
+.success-wrap {
+  text-align: center;
+  padding: 16px 0;
+}
+
+.success-anim {
+  width: 80px;
+  height: 80px;
+  background: var(--green-light);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38px;
+  margin: 0 auto 20px;
+  animation: popIn 0.5s cubic-bezier(.34,1.56,.64,1);
+}
+
+@keyframes popIn {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.success-wrap h2 {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--green);
+  margin-bottom: 8px;
+}
+
+.success-wrap > p {
+  color: var(--text-sub);
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.summary-table {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  text-align: left;
+  margin-bottom: 24px;
+  font-size: 13px;
+}
+
+.summary-row {
+  display: flex;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.summary-row:last-child { border-bottom: none; }
+.summary-label { color: var(--text-mute); flex-shrink: 0; width: 120px; }
+.summary-value { font-weight: 600; color: var(--text-main); }
+
+.btn-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  background: linear-gradient(135deg, var(--blue-mid), var(--teal));
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 4px 14px rgba(21,101,192,0.3);
+  transition: opacity 0.2s;
+}
+
+.btn-reset:hover { opacity: 0.9; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--text-main);
+  color: white;
+  border-radius: 10px;
+  padding: 13px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 999;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  transition: transform 0.35s cubic-bezier(.34,1.56,.64,1), opacity 0.2s;
+  opacity: 0;
+  max-width: calc(100vw - 40px);
+  white-space: nowrap;
+}
+
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.success { background: var(--green); }
+.toast.warn    { background: var(--amber); }
+.toast.error   { background: var(--red); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 520px) {
+  .kegiatan-grid { grid-template-columns: 1fr; }
+  .field-row { grid-template-columns: 1fr; }
+  .card { padding: 20px 16px; }
+  .header-text p { display: none; }
+  main { padding: 20px 12px 80px; }
+}
+</style>
 </head>
 <body>
 
-<!-- ===== HEADER ===== -->
-<header class="app-header">
-  <div class="brand">
-    <!-- MENGUBAH LOGO: Dari Padi (🌾) menjadi Air (🌊) -->
-    <!-- Menggunakan emoji air mancur/pengairan -->
-    <div class="brand-icon">⛲</div> 
-    <div class="brand-text">
-      <h1>SiPOP – Irigasi NTT</h1>
-      <p>Sistem Pelaporan Operasi & Pemeliharaan Jaringan Irigasi</p>
+<!-- HEADER -->
+<header>
+  <div class="header-brand">
+    <div class="header-logo">💧</div>
+    <div class="header-text">
+      <h1>SiPOP</h1>
+      <p>Sistem Pelaporan Operasional &amp; Pemeliharaan Irigasi</p>
     </div>
   </div>
-  <div class="status-badge">
-    <div class="status-dot"></div>
-    Online
+  <div class="header-badge">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusText">Menghubungkan…</span>
   </div>
 </header>
 
-<!-- ===== SENDING OVERLAY ===== -->
-<div class="sending-overlay" id="sendingOverlay">
-  <div class="spinner"></div>
-  <p>⏳ Mengirim laporan...</p>
-  <small>Menyiapkan data dan foto...</small>
+<!-- STEPPER -->
+<div class="stepper-wrap">
+  <div class="stepper">
+    <div class="step-track"><div class="step-track-fill" id="trackFill"></div></div>
+    <div class="step-item active" id="si0"><div class="step-circle">👤</div><div class="step-label">Identitas</div></div>
+    <div class="step-item" id="si1"><div class="step-circle">📍</div><div class="step-label">Lokasi</div></div>
+    <div class="step-item" id="si2"><div class="step-circle">📋</div><div class="step-label">Kegiatan</div></div>
+  </div>
 </div>
 
-<!-- ===========================
-     TAB: FORM
-=========================== -->
-<div id="tab-form">
+<!-- MAIN -->
+<main>
 
-  <!-- STEPPER -->
-  <div class="stepper-wrap">
-    <div class="stepper" id="stepper">
-      <div class="step-item active" data-step="1">
-        <div class="step-circle">👤</div>
-        <div class="step-label">Identitas</div>
+  <!-- ── STEP 0: IDENTITAS ── -->
+  <div class="panel active" id="step0">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon-wrap icon-blue">👤</div>
+        <div class="card-head-text">
+          <div class="step-badge">Langkah 1 dari 3</div>
+          <h2>Identitas Petugas</h2>
+          <p>Data diri petugas yang bertugas hari ini</p>
+        </div>
       </div>
-      <div class="step-item" data-step="2">
-        <div class="step-circle">🗺️</div>
-        <div class="step-label">Lokasi</div>
+
+      <div class="field">
+        <label>Jabatan <span class="req">*</span></label>
+        <select id="jabatan">
+          <option value="">-- Pilih Jabatan --</option>
+          <option>POB – Petugas Operasi Bendung</option>
+          <option>PPA – Petugas Pintu Air</option>
+          <option>Pengamat Perairan</option>
+          <option>Juru Pengairan</option>
+          <option>Staf Pengamat</option>
+          <option>Lainnya</option>
+        </select>
       </div>
-      <div class="step-item" data-step="3">
-        <div class="step-circle">✅</div>
-        <div class="step-label">Kehadiran</div>
+
+      <div class="field">
+        <label>Nama Petugas <span class="req">*</span></label>
+        <input type="text" id="namaPetugas" placeholder="Nama lengkap sesuai identitas">
       </div>
-      <div class="step-item" data-step="4">
-        <div class="step-circle">📋</div>
-        <div class="step-label">Laporan</div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Tanggal <span class="req">*</span></label>
+          <input type="date" id="tanggal">
+        </div>
+        <div class="field">
+          <label>Waktu <span class="req">*</span></label>
+          <input type="time" id="waktu">
+        </div>
+      </div>
+
+      <div class="nav-row">
+        <div></div>
+        <button class="btn-next" onclick="goStep(1)">Lanjut ke Lokasi →</button>
       </div>
     </div>
   </div>
 
-  <div class="container">
-
-    <!-- ===== STEP 1: IDENTITAS ===== -->
-    <div id="step1">
-      <div class="card">
-        <div class="card-head">
-          <div class="card-icon">👤</div>
-          <div>
-            <h2>Identitas Petugas</h2>
-            <p>Isi data diri petugas OP</p>
-          </div>
+  <!-- ── STEP 1: LOKASI ── -->
+  <div class="panel" id="step1">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon-wrap icon-teal">📍</div>
+        <div class="card-head-text">
+          <div class="step-badge">Langkah 2 dari 3</div>
+          <h2>Lokasi Tugas</h2>
+          <p>Data daerah irigasi dan wilayah administrasi</p>
         </div>
+      </div>
 
-        <div class="form-group">
-          <label for="jabatan">Jabatan <span class="req">*</span></label>
-          <select id="jabatan">
-            <option value="">-- Pilih Jabatan --</option>
-            <option value="POB – Petugas Operasi Bendung">POB – Petugas Operasi Bendung</option>
-            <option value="PPA – Petugas Pintu Air">PPA – Petugas Pintu Air</option>
-            <option value="Pengamat Pengairan">Pengamat Pengairan</option>
-            <option value="Juru Pengairan">Juru Pengairan</option>
-            <option value="Staf Pengamat">Staf Pengamat</option>
-            <option value="Lainnya">Lainnya</option>
-          </select>
+      <div class="section-divider">Daerah Irigasi</div>
+
+      <div class="field">
+        <label>Nama Daerah Irigasi <span class="req">*</span></label>
+        <input type="text" id="daerahIrigasi" placeholder="Contoh: DI. Malaka, DI. Bena, DI. Temef…">
+      </div>
+
+      <div class="field">
+        <label>Nama Saluran / Bangunan <span class="req">*</span></label>
+        <input type="text" id="namaSaluran" placeholder="Contoh: Saluran Primer Bena, Bendung Malaka">
+      </div>
+
+      <div class="section-divider">Wilayah Administrasi</div>
+
+      <div class="field">
+        <label>Nama Desa <span class="req">*</span></label>
+        <input type="text" id="namaDesa" placeholder="Contoh: Desa Malaka Barat">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Kecamatan <span class="req">*</span></label>
+          <input type="text" id="kecamatan" placeholder="Nama kecamatan">
         </div>
-
-        <div class="form-group">
-          <label for="namaPetugas">Nama Petugas <span class="req">*</span></label>
-          <input type="text" id="namaPetugas" placeholder="Isi nama lengkap sesuai identitas" />
+        <div class="field">
+          <label>Kabupaten <span class="req">*</span></label>
+          <input type="text" id="kabupaten" placeholder="Nama kabupaten">
         </div>
+      </div>
 
-        <div class="form-group">
-          <label for="tanggal">Tanggal <span class="req">*</span></label>
-          <input type="date" id="tanggal" />
+      <div class="section-divider">Titik Koordinat GPS</div>
+
+      <div class="field">
+        <label>Koordinat GPS</label>
+        <div class="gps-wrap">
+          <input type="text" id="koordinat" placeholder="Latitude, Longitude" readonly>
+          <button class="btn-gps" onclick="getGPS()">📡 Deteksi GPS</button>
         </div>
+        <div class="field-hint" id="gpsHint">Tekan tombol untuk mendeteksi lokasi Anda secara otomatis.</div>
+      </div>
 
-        <div class="form-group">
-          <label for="waktu">Waktu <span class="req">*</span></label>
-          <input type="time" id="waktu" />
-        </div>
-
-        <button class="btn btn-primary" onclick="nextStep(2)">Lanjut ke Lokasi →</button>
+      <div class="nav-row">
+        <button class="btn-back" onclick="goStep(0)">← Kembali</button>
+        <button class="btn-next" onclick="goStep(2)">Lanjut ke Kegiatan →</button>
       </div>
     </div>
+  </div>
 
-    <!-- ===== STEP 2: LOKASI ===== -->
-    <div id="step2" style="display:none">
-      <div class="card">
-        <div class="card-head">
-          <div class="card-icon">🗺️</div>
-          <div>
-            <h2>Lokasi Tugas</h2>
-            <p>Daerah Irigasi dan wilayah administratif</p>
-          </div>
-        </div>
-
-        <div class="section-divider">Daerah Irigasi</div>
-
-        <div class="form-group">
-          <label for="daerahIrigasi">Nama Daerah Irigasi (D.I) <span class="req">*</span></label>
-          <input type="text" id="daerahIrigasi" placeholder="Isi nama D.I tempat bertugas" />
-        </div>
-
-        <div class="form-group">
-          <label for="ruasKerja">Ruas Kerja / Nama Saluran <span class="req">*</span></label>
-          <input type="text" id="ruasKerja" placeholder="Contoh: Saluran Primer, Sekunder atau Tersier" />
-        </div>
-
-        <div class="section-divider">Wilayah Administratif</div>
-
-        <div class="form-group">
-          <label for="desa">Nama Desa <span class="req">*</span></label>
-          <input type="text" id="desa" placeholder="Nama desa" />
-        </div>
-
-        <div class="form-group">
-          <label for="kecamatan">Kecamatan <span class="req">*</span></label>
-          <input type="text" id="kecamatan" placeholder="Nama kecamatan" />
-        </div>
-
-        <div class="form-group">
-          <label for="kabupaten">Kabupaten <span class="req">*</span></label>
-          <input type="text" id="kabupaten" placeholder="Nama kabupaten" />
-        </div>
-
-        <div class="btn-row">
-          <button class="btn btn-secondary" onclick="prevStep(1)">← Kembali</button>
-          <button class="btn btn-primary" onclick="nextStep(3)">Lanjut ke Kehadiran →</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== STEP 3: KEHADIRAN ===== -->
-    <div id="step3" style="display:none">
-      <div class="card">
-        <div class="card-head">
-          <div class="card-icon">✅</div>
-          <div>
-            <h2>Status Kehadiran</h2>
-            <p>Pilih status dan ambil lokasi GPS</p>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Status <span class="req">*</span></label>
-          <div class="status-group">
-            <div>
-              <input type="radio" name="status" id="status-hadir" class="status-radio" value="Hadir" checked />
-              <label for="status-hadir" class="status-label">
-                <span class="emoji">✅</span>Hadir
-              </label>
-            </div>
-            <div>
-              <input type="radio" name="status" id="status-ijin" class="status-radio" value="Ijin/Sakit" />
-              <label for="status-ijin" class="status-label">
-                <span class="emoji">🏥</span>Ijin/Sakit
-              </label>
-            </div>
-            <div>
-              <input type="radio" name="status" id="status-tidak" class="status-radio" value="Tidak Hadir" />
-              <label for="status-tidak" class="status-label">
-                <span class="emoji">❌</span>Tidak Hadir
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="keterangan">Keterangan <span class="req">*</span></label>
-          <textarea id="keterangan" placeholder="Isi keterangan kehadiran..."></textarea>
-        </div>
-
-        <div class="form-group">
-          <div class="gps-widget">
-            <h4>📍 Lokasi GPS</h4>
-            <p style="font-size:12px;color:#0369a1;margin-bottom:10px;">Verifikasi keberadaan petugas di lapangan</p>
-            <div class="gps-status" id="gpsStatus">🛰️ Belum diambil — Tap tombol untuk capture lokasi</div>
-            <div class="gps-coords" id="gpsCoords"></div>
-            <button class="btn btn-gps" onclick="ambilGPS()">
-              📡 Ambil Lokasi GPS Sekarang
-            </button>
-          </div>
-        </div>
-
-        <div class="btn-row">
-          <button class="btn btn-secondary" onclick="prevStep(2)">← Kembali</button>
-          <button class="btn btn-primary" onclick="nextStep(4)">Lanjut ke Laporan →</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== STEP 4: LAPORAN ===== -->
-    <div id="step4" style="display:none">
-      <div class="card">
-        <div class="card-head">
-          <div class="card-icon">📋</div>
-          <div>
-            <h2>Kegiatan yang Dilakukan</h2>
-            <p>Centang semua kegiatan hari ini</p>
-          </div>
-        </div>
-
-        <div class="checklist">
-          <input type="checkbox" id="c1" class="check-item" value="Inspeksi saluran irigasi" />
-          <label for="c1" class="check-label">🔍 Inspeksi saluran irigasi</label>
-
-          <input type="checkbox" id="c2" class="check-item" value="Operasi pintu air" />
-          <label for="c2" class="check-label">🚪 Operasi pintu air</label>
-
-          <input type="checkbox" id="c3" class="check-item" value="Pemeliharaan rutin saluran" />
-          <label for="c3" class="check-label">🛠 Pemeliharaan rutin saluran</label>
-
-          <input type="checkbox" id="c4" class="check-item" value="Pemeliharaan bangunan irigasi" />
-          <label for="c4" class="check-label">🏗️ Pemeliharaan bangunan irigasi</label>
-
-          <input type="checkbox" id="c5" class="check-item" value="Pencatatan debit air / pengukuran" />
-          <label for="c5" class="check-label">💧 Pencatatan debit air / pengukuran</label>
-
-          <input type="checkbox" id="c6" class="check-item" value="Koordinasi dengan petani / P3A" />
-          <label for="c6" class="check-label">🤝 Koordinasi dengan petani / P3A</label>
-
-          <input type="checkbox" id="c7" class="check-item" value="Pelaporan kerusakan darurat" />
-          <label for="c7" class="check-label">🚨 Pelaporan kerusakan darurat</label>
-
-          <input type="checkbox" id="c8" class="check-item" value="Kegiatan lainnya" />
-          <label for="c8" class="check-label">➕ Kegiatan lainnya</label>
+  <!-- ── STEP 2: KEGIATAN ── -->
+  <div class="panel" id="step2">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon-wrap icon-amber">📋</div>
+        <div class="card-head-text">
+          <div class="step-badge">Langkah 3 dari 3</div>
+          <h2>Laporan Kegiatan</h2>
+          <p>Kegiatan operasional &amp; pemeliharaan hari ini</p>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-head">
-          <div class="card-icon">📸</div>
-          <div>
-            <h2>Dokumentasi Foto</h2>
-            <p>Upload hingga 6 foto (opsional)</p>
-          </div>
-        </div>
-
-        <div class="foto-hint">
-          📁 Foto bisa diambil langsung dari <strong>kamera</strong> atau dipilih dari <strong>galeri/album</strong> HP. Sentuh slot foto untuk memilih.
-        </div>
-
-        <div class="foto-grid" id="fotoGrid">
-          <div class="foto-slot" onclick="pilihFoto(0)" id="slot0">
-            <span class="slot-icon">📷</span>
-            <span class="slot-label">Kondisi Umum</span>
-          </div>
-          <div class="foto-slot" onclick="pilihFoto(1)" id="slot1">
-            <span class="slot-icon">🚪</span>
-            <span class="slot-label">Pintu Air</span>
-          </div>
-          <div class="foto-slot" onclick="pilihFoto(2)" id="slot2">
-            <span class="slot-icon">🌊</span>
-            <span class="slot-label">Saluran</span>
-          </div>
-          <div class="foto-slot" onclick="pilihFoto(3)" id="slot3">
-            <span class="slot-icon">🏗️</span>
-            <span class="slot-label">Bendung</span>
-          </div>
-          <div class="foto-slot" onclick="pilihFoto(4)" id="slot4">
-            <span class="slot-icon">👷</span>
-            <span class="slot-label">Kegiatan</span>
-          </div>
-          <div class="foto-slot" onclick="pilihFoto(5)" id="slot5">
-            <span class="slot-icon">➕</span>
-            <span class="slot-label">Lainnya</span>
-          </div>
-        </div>
-        <!-- Hidden file inputs -->
-        <input type="file" accept="image/*" capture="environment" id="fileInput0" style="display:none" onchange="previewFoto(0,this)" />
-        <input type="file" accept="image/*" capture="environment" id="fileInput1" style="display:none" onchange="previewFoto(1,this)" />
-        <input type="file" accept="image/*" capture="environment" id="fileInput2" style="display:none" onchange="previewFoto(2,this)" />
-        <input type="file" accept="image/*" capture="environment" id="fileInput3" style="display:none" onchange="previewFoto(3,this)" />
-        <input type="file" accept="image/*" capture="environment" id="fileInput4" style="display:none" onchange="previewFoto(4,this)" />
-        <input type="file" accept="image/*" capture="environment" id="fileInput5" style="display:none" onchange="previewFoto(5,this)" />
-      </div>
-
-      <div class="card">
-        <div class="card-head">
-          <div class="card-icon">📝</div>
-          <div>
-            <h2>Catatan Tambahan</h2>
-            <p>Informasi lain yang perlu dilaporkan</p>
-          </div>
-        </div>
-        <div class="form-group">
-          <textarea id="catatan" placeholder="Tulis catatan tambahan di sini..." style="min-height:100px"></textarea>
+      <div class="field">
+        <label>Kegiatan yang Dilakukan <span class="req">*</span></label>
+        <div class="kegiatan-grid" id="kegiatanGrid">
+          <label class="kegiatan-item" onclick="toggleKegiatan(this)">
+            <input type="checkbox" value="Inspeksi Saluran">
+            <div class="kegiatan-text">🔍 Inspeksi Saluran<span>Pengecekan kondisi saluran</span></div>
+          </label>
+          <label class="kegiatan-item" onclick="toggleKegiatan(this)">
+            <input type="checkbox" value="Operasi Pintu Air">
+            <div class="kegiatan-text">🚪 Operasi Pintu Air<span>Buka / tutup pintu air</span></div>
+          </label>
+          <label class="kegiatan-item" onclick="toggleKegiatan(this)">
+            <input type="checkbox" value="Pemeliharaan Rutin Saluran">
+            <div class="kegiatan-text">🧹 Pemeliharaan Rutin<span>Bersihkan sedimen &amp; gulma</span></div>
+          </label>
+          <label class="kegiatan-item" onclick="toggleKegiatan(this)">
+            <input type="checkbox" value="Pemeliharaan Bangunan Irigasi">
+            <div class="kegiatan-text">🏗️ Pemeliharaan Bangunan<span>Perbaikan bangunan irigasi</span></div>
+          </label>
+          <label class="kegiatan-item" onclick="toggleKegiatan(this)">
+            <input type="checkbox" value="Pencatatan Debit Air">
+            <div class="kegiatan-text">📊 Pencatatan Debit Air<span>Ukur &amp; catat debit aliran</span></div>
+          </label>
+          <label class="kegiatan-item" onclick="toggleKegiatan(this)">
+            <input type="checkbox" value="Koordinasi dengan Petani / P3A">
+            <div class="kegiatan-text">🤝 Koordinasi Petani/P3A<span>Koordinasi dengan kelompok tani</span></div>
+          </label>
+          <label class="kegiatan-item" onclick="toggleKegiatan(this)">
+            <input type="checkbox" value="Pelaporan Kerusakan">
+            <div class="kegiatan-text">⚠️ Pelaporan Kerusakan<span>Dokumentasi &amp; lapor kerusakan</span></div>
+          </label>
+          <label class="kegiatan-item" onclick="toggleKegiatan(this)">
+            <input type="checkbox" value="Lainnya">
+            <div class="kegiatan-text">📝 Lainnya<span>Kegiatan di luar daftar</span></div>
+          </label>
         </div>
       </div>
 
-      <div class="btn-row">
-        <button class="btn btn-secondary" onclick="prevStep(3)">← Kembali</button>
-        <button class="btn btn-primary" onclick="kirimLaporan()">🚀 Kirim Laporan</button>
+      <div class="field" style="margin-top:24px;">
+        <label>Dokumentasi Foto</label>
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="fotoInput" accept="image/*" multiple onchange="handleFileSelect(event)">
+          <div class="upload-icon">📷</div>
+          <div class="upload-label">Tap untuk pilih foto</div>
+          <div class="upload-sub">Bisa pilih beberapa foto sekaligus • JPG, PNG, HEIC</div>
+        </div>
+        <div class="photo-preview-grid" id="photoPreview"></div>
+        <div id="uploadStatus"></div>
       </div>
 
-      <!-- SUCCESS PAGE (muncul setelah kirim) -->
-      <div class="success-page" id="successPage">
-        <div class="success-circle">✅</div>
-        <h2>Laporan Terkirim!</h2>
-        <p>Data dan foto telah tersimpan ke Google Sheets & Drive</p>
+      <div class="field" style="margin-top:8px;">
+        <label>Catatan Tambahan</label>
+        <textarea id="catatanTambahan" placeholder="Temuan lapangan, kondisi khusus, atau catatan penting lainnya…" rows="4"></textarea>
+      </div>
 
-        <div class="success-meta" id="successMeta"></div>
-
-        <button class="btn btn-primary" onclick="buatBaru()" style="max-width:280px;margin-top:8px">
-          📝 Buat Laporan Baru
+      <div class="nav-row">
+        <button class="btn-back" onclick="goStep(1)">← Kembali</button>
+        <button class="btn-next" id="btnKirim" onclick="kirimLaporan()">
+          <div class="spinner" id="spinnerKirim"></div>
+          <span id="kirimText">📤 Kirim Laporan</span>
         </button>
       </div>
     </div>
+  </div>
 
-  </div><!-- /container -->
-</div><!-- /tab-form -->
-
-<!-- ===========================
-     TAB: RIWAYAT
-=========================== -->
-<div id="tab-riwayat">
-  <div class="container">
+  <!-- ── STEP 3: SUKSES ── -->
+  <div class="panel" id="step3">
     <div class="card">
-      <div class="card-head">
-        <div class="card-icon">📋</div>
-        <div>
-          <h2>Riwayat Laporan</h2>
-          <p>Laporan yang sudah dikirim di perangkat ini</p>
-        </div>
-      </div>
-      <div id="riwayatList">
-        <div class="empty-state">
-          <div class="empty-icon">📭</div>
-          <p>Belum ada riwayat laporan</p>
-        </div>
+      <div class="success-wrap">
+        <div class="success-anim">✅</div>
+        <h2>Laporan Terkirim!</h2>
+        <p>Data operasional &amp; pemeliharaan berhasil disimpan ke sistem.</p>
+        <div class="summary-table" id="summaryTable"></div>
+        <button class="btn-reset" onclick="resetForm()">➕ Isi Laporan Baru</button>
       </div>
     </div>
   </div>
+
+</main>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span id="toastIcon">ℹ️</span>
+  <span id="toastMsg"></span>
 </div>
 
-<!-- ===========================
-     TAB: PANDUAN
-=========================== -->
-<div id="tab-panduan">
-  <div class="container">
-    <div class="card">
-      <div class="card-head">
-        <div class="card-icon">🔧</div>
-        <div>
-          <h2>Panduan Setup Lengkap</h2>
-          <p>Integrasi Apps Script + Google Drive (dengan foto)</p>
-        </div>
-      </div>
-      <div class="info-box">
-        ℹ️ Sistem ini menggunakan <strong>Google Apps Script Web App</strong> — bukan Google Forms biasa — sehingga foto bisa dikirim langsung ke Google Drive.
-      </div>
-    </div>
-
-    <div class="panduan-step">
-      <div class="panduan-num">1</div>
-      <div>
-        <h3>Buat Google Spreadsheet</h3>
-        <p>Buka <strong>sheets.google.com</strong> → buat spreadsheet baru → beri nama <strong>"SiPOP – Data Laporan"</strong>. Salin <strong>Spreadsheet ID</strong> dari URL:</p>
-        <div class="code-block">https://docs.google.com/spreadsheets/d/<span style="color:#fde68a">SALIN_ID_INI</span>/edit</div>
-      </div>
-    </div>
-
-    <div class="panduan-step">
-      <div class="panduan-num">2</div>
-      <div>
-        <h3>Buat Apps Script</h3>
-        <p>Di spreadsheet → klik menu <strong>Ekstensi → Apps Script</strong> → hapus semua kode lama → paste kode Apps Script. Ganti baris:</p>
-        <div class="code-block">const SPREADSHEET_ID = "<span style="color:#fde68a">ID_SPREADSHEET_ANDA</span>";</div>
-        <p style="margin-top:8px">Ganti <code style="background:var(--gray-100);padding:2px 5px;border-radius:4px;font-size:11px">ID_SPREADSHEET_ANDA</code> dengan ID yang disalin di langkah 1.</p>
-      </div>
-    </div>
-
-    <div class="panduan-step">
-      <div class="panduan-num">3</div>
-      <div>
-        <h3>Deploy sebagai Web App</h3>
-        <p>Di Apps Script → klik tombol <strong>Deploy → New Deployment</strong> → pilih tipe <strong>"Web App"</strong> → atur:</p>
-        <div class="code-block">Execute as  : Me
-Who has access: Anyone</div>
-        <p style="margin-top:8px">Klik <strong>Deploy</strong> → izinkan akses → salin <strong>Web App URL</strong> yang muncul.</p>
-      </div>
-    </div>
-
-    <div class="panduan-step">
-      <div class="panduan-num">4</div>
-      <div>
-        <h3>Pasang URL ke file HTML</h3>
-        <p>Buka file HTML ini di editor teks → cari bagian <strong>KONFIGURASI</strong> → ganti URL:</p>
-        <div class="code-block">const APPS_SCRIPT_URL = "<span style="color:#fde68a">PASTE_WEB_APP_URL_DISINI</span>";</div>
-        <div class="info-box" style="margin-top:8px">⚠️ Setiap kali kode Apps Script diubah, deploy ulang dengan klik <strong>Deploy → Manage Deployments → Edit → New Version</strong>.</div>
-      </div>
-    </div>
-
-    <div class="panduan-step">
-      <div class="panduan-num">5</div>
-      <div>
-        <h3>Deploy HTML ke Netlify / GitHub Pages</h3>
-        <p>Daftar di <strong>netlify.com</strong> → klik <strong>Add new site → Deploy manually</strong> → drag & drop folder berisi index.html → link siap dalam hitungan detik!</p>
-        <div class="code-block">https://nama-anda.netlify.app/</div>
-      </div>
-    </div>
-
-    <div class="panduan-step">
-      <div class="panduan-num">6</div>
-      <div>
-        <h3>Uji coba & bagikan ke tim</h3>
-        <p>Isi form sekali → cek spreadsheet → pastikan data dan link foto masuk. Bagikan link ke petugas lewat <strong>WhatsApp</strong>. Sarankan untuk <strong>Add to Home Screen</strong> di HP masing-masing.</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ===== BOTTOM NAV ===== -->
-<nav class="bottom-nav">
-  <button class="nav-item active" id="nav-form" onclick="showTab('form')">
-    <span class="nav-icon">📝</span>Form
-  </button>
-  <button class="nav-item" id="nav-riwayat" onclick="showTab('riwayat')">
-    <span class="nav-icon">📋</span>Riwayat
-  </button>
-  <button class="nav-item" id="nav-panduan" onclick="showTab('panduan')">
-    <span class="nav-icon">📖</span>Panduan
-  </button>
-</nav>
 <script src="app.js"></script>
 </body>
 </html>
