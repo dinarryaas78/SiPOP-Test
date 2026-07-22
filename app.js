@@ -1,12 +1,12 @@
 // ════════════════════════════════════════════════
-// SiPOP – Frontend Logic (Dengan Fitur Semi-Offline)
+// SiPOP – Frontend Logic
 // ════════════════════════════════════════════════
 
 // GANTI dengan URL hasil Deploy Apps Script Anda
 var API_URL = 'https://script.google.com/macros/s/AKfycby1Y8VpCMtz7azAYucMtBAt2sHqAx0QqG90TM65Ff_z7iW6qszzfi9k0vIAeNUEgOP9/exec';
 
 // ════════════════════════════════════════════════
-// INISIALISASI & STATUS JARINGAN
+// INISIALISASI
 // ════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -14,25 +14,11 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('tanggal').value = now.toISOString().slice(0, 10);
   document.getElementById('waktu').value   = now.toTimeString().slice(0, 5);
 
-  // Set status awal dan pasang pendengar event
-  updateNetworkStatus();
-  window.addEventListener('online', updateNetworkStatus);
-  window.addEventListener('offline', updateNetworkStatus);
-});
-
-function updateNetworkStatus() {
   var dot  = document.getElementById('statusDot');
   var text = document.getElementById('statusText');
-  
-  if (navigator.onLine) {
-    if (dot) { dot.classList.add('on'); dot.classList.remove('off'); } // Pastikan ada class 'off' di CSS Anda untuk warna merah
-    if (text) text.textContent = 'Server Terhubung';
-    syncDataLokal(); // Sinkronisasi jika ada data tertunda
-  } else {
-    if (dot) { dot.classList.remove('on'); dot.classList.add('off'); }
-    if (text) text.textContent = 'Mode Offline (Tersimpan Lokal)';
-  }
-}
+  if (dot)  dot.classList.add('on');
+  if (text) text.textContent = 'Server Terhubung';
+});
 
 // ════════════════════════════════════════════════
 // STATE
@@ -152,7 +138,7 @@ function getGPS() {
 }
 
 // ════════════════════════════════════════════════
-// UPLOAD FOTO
+// UPLOAD FOTO — konversi ke base64, preview lokal
 // ════════════════════════════════════════════════
 
 function handleFiles(fileListRaw) {
@@ -169,6 +155,7 @@ function handleFiles(fileListRaw) {
       return;
     }
 
+    // Kompres dulu sebelum jadi base64 agar payload tidak terlalu besar
     kompresGambar(file, function(base64Compressed) {
       var item = {
         base64: base64Compressed,
@@ -181,9 +168,11 @@ function handleFiles(fileListRaw) {
     });
   });
 
+  // Reset input supaya bisa pilih file sama lagi jika perlu
   document.getElementById('fotoInput').value = '';
 }
 
+// Kompres gambar via canvas agar ukuran base64 wajar (max ~1200px, quality 0.7)
 function kompresGambar(file, callback) {
   var reader = new FileReader();
   reader.onload = function(e) {
@@ -234,6 +223,7 @@ function hapusFoto(idx) {
   renderPhotoGrid();
 }
 
+// Drag & drop support
 document.addEventListener('DOMContentLoaded', function() {
   var zone = document.getElementById('uploadZone');
   if (!zone) return;
@@ -253,7 +243,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ════════════════════════════════════════════════
-// SUBMIT & OFFLINE LOGIC
+// SUBMIT — kirim data + foto (base64) ke Apps Script
 // ════════════════════════════════════════════════
 
 function submitForm() {
@@ -262,10 +252,15 @@ function submitForm() {
   var btnSubmit  = document.getElementById('btnSubmit');
   var spinner    = document.getElementById('submitSpinner');
   var submitText = document.getElementById('submitText');
+  var uploadProgress = document.getElementById('uploadProgress');
+  var progressFill   = document.getElementById('progressFill');
+  var uploadLabel     = document.getElementById('uploadLabel');
+  var uploadPct        = document.getElementById('uploadPct');
 
   if (btnSubmit)  btnSubmit.disabled     = true;
   if (spinner)    spinner.style.display  = 'inline-block';
-  if (submitText) submitText.textContent = 'Menyimpan...';
+  if (submitText) submitText.textContent = 'Mengirim...';
+  if (uploadProgress && fotoList.length > 0) uploadProgress.style.display = 'block';
 
   var payload = {
     tanggal:          document.getElementById('tanggal').value,
@@ -285,25 +280,10 @@ function submitForm() {
     })
   };
 
-  if (navigator.onLine) {
-    kirimKeServer(payload, false);
-  } else {
-    simpanKeLokal(payload);
-  }
-}
-
-function kirimKeServer(payload, isBackgroundSync) {
-  var uploadProgress = document.getElementById('uploadProgress');
-  var progressFill   = document.getElementById('progressFill');
-  var uploadPct      = document.getElementById('uploadPct');
-  
-  if (!isBackgroundSync && uploadProgress && payload.foto.length > 0) {
-      uploadProgress.style.display = 'block';
-  }
-
+  // Simulasi progress bar (karena fetch no-cors tidak punya progress event)
   var simPct = 0;
   var simInterval = null;
-  if (!isBackgroundSync && payload.foto.length > 0) {
+  if (fotoList.length > 0) {
     simInterval = setInterval(function() {
       simPct = Math.min(simPct + 8, 92);
       if (progressFill) progressFill.style.width = simPct + '%';
@@ -318,72 +298,29 @@ function kirimKeServer(payload, isBackgroundSync) {
     body: JSON.stringify(payload)
   })
   .then(function() {
-    if (!isBackgroundSync) {
-        if (simInterval) clearInterval(simInterval);
-        if (progressFill) progressFill.style.width = '100%';
-        if (uploadPct) uploadPct.textContent = '100%';
-        setTimeout(function() { tampilkanSukses(payload, 'Laporan berhasil dikirim ke server!'); }, 300);
-    } else {
-        showToast('Sinkronisasi latar belakang berhasil!', 'success');
-    }
+    if (simInterval) clearInterval(simInterval);
+    if (progressFill) progressFill.style.width = '100%';
+    if (uploadPct) uploadPct.textContent = '100%';
+    setTimeout(function() { tampilkanSukses(payload); }, 300);
   })
   .catch(function(err) {
-    if (!isBackgroundSync) {
-        if (simInterval) clearInterval(simInterval);
-        showToast('Gagal terhubung, menyimpan ke lokal...', 'warn');
-        simpanKeLokal(payload); 
-    } else {
-        // Jika gagal sync background, simpan kembali ke localstorage untuk dicoba nanti
-        var dataTersimpan = JSON.parse(localStorage.getItem('sipop_pending') || '[]');
-        dataTersimpan.push(payload);
-        localStorage.setItem('sipop_pending', JSON.stringify(dataTersimpan));
-    }
+    if (simInterval) clearInterval(simInterval);
+    showToast('Gagal kirim: ' + err.message, 'error');
+    if (btnSubmit)  btnSubmit.disabled     = false;
+    if (spinner)    spinner.style.display  = 'none';
+    if (submitText) submitText.textContent = '📤 Kirim Laporan';
+    if (uploadProgress) uploadProgress.style.display = 'none';
   });
 }
 
-function simpanKeLokal(payload) {
-  // Ambil array data yang sudah ada, jika kosong buat array baru
-  var dataTersimpan = JSON.parse(localStorage.getItem('sipop_pending') || '[]');
-  dataTersimpan.push(payload);
-  
-  try {
-      localStorage.setItem('sipop_pending', JSON.stringify(dataTersimpan));
-      tampilkanSukses(payload, 'Anda Offline. Laporan disimpan lokal dan akan otomatis terkirim saat online.');
-  } catch (e) {
-      // Menangani error jika foto terlalu banyak (Kuota LocalStorage penuh)
-      showToast('Penyimpanan lokal penuh. Coba hapus beberapa foto.', 'error');
-      resetUIKirim();
-  }
-}
-
-function syncDataLokal() {
-  var dataTersimpan = JSON.parse(localStorage.getItem('sipop_pending') || '[]');
-  if (dataTersimpan.length === 0) return;
-
-  showToast('Mengirim ' + dataTersimpan.length + ' data tertunda ke server...', 'info');
-  
-  // Kosongkan memori lokal agar tidak duplikat saat sync
-  localStorage.removeItem('sipop_pending');
-
-  dataTersimpan.forEach(function(payload) {
-      kirimKeServer(payload, true);
-  });
-}
-
-function resetUIKirim() {
+function tampilkanSukses(payload) {
   var btnSubmit  = document.getElementById('btnSubmit');
   var spinner    = document.getElementById('submitSpinner');
   var submitText = document.getElementById('submitText');
-  var uploadProgress = document.getElementById('uploadProgress');
 
   if (btnSubmit)  btnSubmit.disabled     = false;
   if (spinner)    spinner.style.display  = 'none';
   if (submitText) submitText.textContent = '📤 Kirim Laporan';
-  if (uploadProgress) uploadProgress.style.display = 'none';
-}
-
-function tampilkanSukses(payload, pesanToast) {
-  resetUIKirim();
 
   var prevPage = document.getElementById('page' + currentStep);
   var prevDot  = document.getElementById('si'   + currentStep);
@@ -399,7 +336,7 @@ function tampilkanSukses(payload, pesanToast) {
   if (fill) fill.style.width = '100%';
 
   showSummary(payload);
-  showToast(pesanToast, 'success');
+  showToast('Laporan berhasil dikirim!', 'success');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -490,5 +427,5 @@ function showToast(msg, type) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(function() {
     toast.className = 'toast';
-  }, 4500); // Diperpanjang sedikit agar pesan offline bisa terbaca
+  }, 3500);
 }
